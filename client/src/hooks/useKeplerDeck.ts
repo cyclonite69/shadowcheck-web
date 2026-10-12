@@ -39,18 +39,38 @@ export function useKeplerDeck({
   pointSize,
   pitch,
   height3d,
+  timeFilterRange = null,
+  timeFilterOrigin = null,
 }: {
   layerType: LayerType;
   pointSize: number;
   pitch: number;
   height3d: number;
+  timeFilterRange?: [number, number] | null;
+  timeFilterOrigin?: number | null;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
+  const layersRef = useRef<any[]>([]);
+  const timeFilterRangeRef = useRef(timeFilterRange);
+  timeFilterRangeRef.current = timeFilterRange;
   const navigationControlRef = useRef<any>(null);
   const isMountedRef = useRef(true);
   const [zoom, setZoom] = useState<number>(10);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+
+  useEffect(() => {
+    if (!timeFilterRange || !layersRef.current.length || !deckRef.current) {
+      return;
+    }
+    const filteredLayers = layersRef.current.map((layer) =>
+      layer.id === 'points' || layer.id === 'heatmap' || layer.id === 'hexagon'
+        ? layer.clone({ filterRange: timeFilterRange })
+        : layer
+    );
+    layersRef.current = filteredLayers;
+    deckRef.current.setProps({ layers: filteredLayers });
+  }, [timeFilterRange]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -361,6 +381,18 @@ export function useKeplerDeck({
         deck[name] ||
         (deck.layers && deck.layers[name]) ||
         (deck.aggregationLayers && deck.aggregationLayers[name]);
+      const DataFilterExtension = deck.DataFilterExtension || deck.extensions?.DataFilterExtension;
+      const timeFilterProps =
+        timeFilterOrigin !== null && typeof DataFilterExtension === 'function'
+          ? {
+              extensions: [new DataFilterExtension({ filterSize: 1 })],
+              getFilterValue: (d: NetworkData) =>
+                typeof d.observed_at_ms === 'number'
+                  ? (d.observed_at_ms - timeFilterOrigin) / 86400000
+                  : -1,
+              filterRange: timeFilterRangeRef.current ?? [0, 1e9],
+            }
+          : {};
 
       if (layerType === 'scatterplot') {
         const ScatterplotLayer = getLayer('ScatterplotLayer');
@@ -372,6 +404,7 @@ export function useKeplerDeck({
               getPosition: (d: NetworkData) => d.position,
               getFillColor: (d: NetworkData) => d.color || [34, 197, 94, 200],
               getRadius: pointSize * 50,
+              ...timeFilterProps,
               radiusMinPixels: 5,
               pickable: true,
               autoHighlight: true,
@@ -406,6 +439,7 @@ export function useKeplerDeck({
               getPosition: (d: NetworkData) => d.position,
               getWeight: (d: NetworkData) => (d.signal ? (d.signal + 120) / 120 : 0.5),
               radiusPixels: pointSize * 100,
+              ...timeFilterProps,
             })
           );
         }
@@ -421,6 +455,7 @@ export function useKeplerDeck({
               elevationScale: height3d * 10,
               extruded: pitch > 0,
               pickable: true,
+              ...timeFilterProps,
             })
           );
         }
@@ -465,9 +500,11 @@ export function useKeplerDeck({
       }
 
       if (deckRef.current) {
+        layersRef.current = layers;
         deckRef.current.setProps({ layers, initialViewState: INITIAL_VIEW_STATE });
         ensureNavigationControl();
       } else {
+        layersRef.current = layers;
         deckRef.current = new (window as any).deck.DeckGL({
           container: mapRef.current,
           initialViewState: INITIAL_VIEW_STATE,
@@ -486,7 +523,7 @@ export function useKeplerDeck({
         ensureNavigationControl();
       }
     },
-    [layerType, pointSize, pitch, height3d, buildTooltipState, clearTooltip]
+    [layerType, pointSize, pitch, height3d, timeFilterOrigin, buildTooltipState, clearTooltip]
   );
 
   return { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck, tooltipState, clearTooltip };

@@ -32,8 +32,8 @@ export interface KeplerGeoJSON {
 }
 
 export const keplerApi = {
-  async getMapboxToken(): Promise<MapboxTokenResponse> {
-    return apiClient.get<MapboxTokenResponse>('/mapbox-token');
+  async getMapboxToken(signal?: AbortSignal): Promise<MapboxTokenResponse> {
+    return apiClient.get<MapboxTokenResponse>('/mapbox-token', { signal });
   },
 
   async getNetworks(filters: KeplerFilters, signal?: AbortSignal): Promise<KeplerGeoJSON> {
@@ -54,5 +54,24 @@ export const keplerApi = {
       },
       signal,
     });
+  },
+
+  async getObservationsArrow(filters: KeplerFilters, signal?: AbortSignal): Promise<ArrayBuffer> {
+    const params = new URLSearchParams({
+      filters: JSON.stringify(filters.filtersForPage),
+      enabled: JSON.stringify(filters.enabledForPage),
+    });
+    const response = await fetch(`/api/kepler/observations.arrow?${params}`, {
+      credentials: 'include',
+      signal,
+      headers: { Accept: 'application/vnd.apache.arrow.stream' },
+    });
+    if (!response.ok) {
+      const detail = response.headers.get('content-type')?.includes('application/json')
+        ? await response.json()
+        : null;
+      throw new Error(detail?.error || `Arrow observations request failed (${response.status})`);
+    }
+    return response.arrayBuffer();
   },
 };

@@ -4,6 +4,10 @@
 
 export type NetworkData = {
   position: [number, number];
+  id?: string | number;
+  lon?: number;
+  lat?: number;
+  observed_at_ms?: number;
   bssid: string;
   ssid: string;
   signal: number;

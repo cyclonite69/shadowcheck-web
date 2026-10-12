@@ -18,7 +18,7 @@ import { useState, useEffect, useCallback } from 'react';
  * );
  */
 export function useAsyncData<T>(
-  fetcher: () => Promise<T>,
+  fetcher: (signal: AbortSignal) => Promise<T>,
   deps: any[] = []
 ): { data: T | null; loading: boolean; error: Error | null; refetch: () => void } {
   const [data, setData] = useState<T | null>(null);
@@ -30,10 +30,11 @@ export function useAsyncData<T>(
 
   useEffect(() => {
     let cancelled = false;
+    const abortController = new AbortController();
     setLoading(true);
     setError(null);
 
-    fetcher()
+    fetcher(abortController.signal)
       .then((result) => {
         if (!cancelled) {
           setData(result);
@@ -52,6 +53,7 @@ export function useAsyncData<T>(
 
     return () => {
       cancelled = true;
+      abortController.abort();
     };
     // deps is intentionally dynamic — same contract as useEffect
   }, [...deps, tick]);

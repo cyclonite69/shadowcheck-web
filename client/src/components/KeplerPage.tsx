@@ -12,6 +12,7 @@ import { KeplerVisualization } from './kepler/KeplerVisualization';
 import { KeplerControls } from './kepler/KeplerControls';
 import { KeplerFilters } from './kepler/KeplerFilters';
 import { KeplerHeaderControls } from './kepler/KeplerHeaderControls';
+import { KeplerTimeScrubber, type KeplerWindowSize } from './kepler/KeplerTimeScrubber';
 
 declare global {
   interface Window {
@@ -44,12 +45,31 @@ const KeplerPage: React.FC = () => {
   const [height3d, setHeight3d] = useState<number>(1);
   const [drawMode, setDrawMode] = useState<DrawMode>('none');
   const [datasetType, setDatasetType] = useState<'observations' | 'networks'>('observations');
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
+  const [windowSize, setWindowSize] = useState<KeplerWindowSize>('all');
 
   // Load data using hook
-  const { loading, error, networkData, mapboxToken, actualCounts } = useKepler(
+  const { loading, error, networkData, mapboxToken, actualCounts, timeBounds } = useKepler(
     adaptedFilters,
     datasetType
   );
+
+  useEffect(() => {
+    setCurrentTime(timeBounds?.max ?? null);
+    setWindowSize('all');
+  }, [timeBounds?.min, timeBounds?.max, datasetType]);
+
+  const timeFilterRange = useMemo<[number, number] | null>(() => {
+    if (datasetType !== 'observations' || !timeBounds || currentTime === null) {
+      return null;
+    }
+    const endDays = (currentTime - timeBounds.min) / 86400000;
+    const startDays =
+      windowSize === 'all'
+        ? 0
+        : Math.max(0, (currentTime - windowSize - timeBounds.min) / 86400000);
+    return [startDays, Math.max(startDays, endDays)];
+  }, [currentTime, datasetType, timeBounds, windowSize]);
 
   const {
     mapRef,
@@ -65,6 +85,8 @@ const KeplerPage: React.FC = () => {
     pointSize,
     pitch,
     height3d,
+    timeFilterRange,
+    timeFilterOrigin: datasetType === 'observations' ? (timeBounds?.min ?? null) : null,
   });
 
   const handleFitBoundsCallback = useCallback(
@@ -170,6 +192,20 @@ const KeplerPage: React.FC = () => {
               : ''
         }
       />
+
+      {datasetType === 'observations' &&
+        networkData.length > 0 &&
+        timeBounds &&
+        currentTime !== null && (
+          <KeplerTimeScrubber
+            minTime={timeBounds.min}
+            maxTime={timeBounds.max}
+            currentTime={currentTime}
+            windowSize={windowSize}
+            onCurrentTimeChange={setCurrentTime}
+            onWindowSizeChange={setWindowSize}
+          />
+        )}
 
       {scriptError && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm z-50">
