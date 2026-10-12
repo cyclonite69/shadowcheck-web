@@ -1,11 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GeospatialOverlays } from './GeospatialOverlays';
 import { WigleLookupDialog } from '../modals/WigleLookupDialog';
 import { BatchWigleLookupDialog } from '../modals/BatchWigleLookupDialog';
 import { WigleObservationsPanel } from '../panels/WigleObservationsPanel';
-import { NearestPlacesPanel } from '../panels/NearestPlacesPanel';
-import { mergeNearestPlaces } from '../../../utils/geospatial/mergeNearestPlaces';
-import type { Map as MapboxMap } from 'mapbox-gl';
 
 interface GeospatialOverlayContentProps {
   state: any;
@@ -14,13 +11,7 @@ interface GeospatialOverlayContentProps {
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
   handleTagAction: (
     action:
-      | 'ignore'
-      | 'threat'
-      | 'suspect'
-      | 'false_positive'
-      | 'investigate'
-      | 'clear'
-      | 'clear-threat'
+      'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear' | 'clear-threat'
   ) => Promise<void>;
   closeContextMenu: () => void;
   openTimeFrequency: (params: { bssid: string; ssid: string }) => void;
@@ -60,17 +51,10 @@ interface GeospatialOverlayContentProps {
   handleWigleLookup: (withLookup: boolean) => void;
   closeWigleLookupDialog: () => void;
   clearWigleObservations: () => void;
-  agencies: any[];
-  agenciesLoading: boolean;
-  agenciesError: any;
-  courthouses: any[];
-  courthousesLoading: boolean;
-  courthousesError: any;
-  mapRef?: React.MutableRefObject<MapboxMap | null>;
 }
 
 const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps> = ({
-  state,
+  state: _state,
   contextMenu,
   tagLoading,
   contextMenuRef,
@@ -113,26 +97,8 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   handleWigleLookup,
   closeWigleLookupDialog,
   clearWigleObservations,
-  agencies,
-  agenciesLoading,
-  agenciesError,
-  courthouses,
-  courthousesLoading,
-  courthousesError,
-  mapRef,
 }) => {
   const [batchDialogBssids, setBatchDialogBssids] = useState<string[]>([]);
-
-  // Merge agency + courthouse results by cluster_id for unified panel
-  const nearestClusters = useMemo(
-    () => mergeNearestPlaces(agencies, courthouses),
-    [agencies, courthouses]
-  );
-
-  const showAgencies = Boolean(state.showAgenciesPanel);
-  const showCourthouses = Boolean(state.showCourthousesPanel);
-  const placesLoading = agenciesLoading || courthousesLoading;
-  const placesError = agenciesError || courthousesError || '';
 
   const handleBatchInvestigate = useCallback(() => {
     setBatchDialogBssids(Array.from(selectedNetworks));
@@ -231,17 +197,6 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
         batchStats={wigleObservations.batchStats}
         onClose={clearWigleObservations}
       />
-      {(showAgencies || showCourthouses) && (
-        <NearestPlacesPanel
-          clusters={nearestClusters}
-          loading={placesLoading}
-          error={placesError}
-          networkCount={selectedNetworks.size}
-          showAgencies={showAgencies}
-          showCourthouses={showCourthouses}
-          mapRef={mapRef}
-        />
-      )}
       <BatchWigleLookupDialog
         visible={batchDialogBssids.length > 0}
         bssids={batchDialogBssids}

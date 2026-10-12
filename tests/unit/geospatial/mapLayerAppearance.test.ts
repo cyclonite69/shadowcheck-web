@@ -15,11 +15,12 @@ describe('applyMapLayerAppearance', () => {
       wigleKml: '#eab308',
       alpr: '#d946ef',
       agencies: '#dc2626',
-      agencyMatches: '#22c55e',
       courthouses: '#6366f1',
       shotspotterZones: '#7f1d1d',
       shotspotterSensors: '#fb7185',
     });
+    expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('agencyMatches');
+    expect(GEOSPATIAL_LAYER_COLORS).not.toHaveProperty('agencyMatches');
     expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('deflock');
     expect(GEOSPATIAL_LAYER_COLORS).not.toHaveProperty('deflock');
   });

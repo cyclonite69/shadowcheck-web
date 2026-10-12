@@ -12,13 +12,11 @@ export const useExplorerPanels = () => {
   const { visibility, opacity, order, toggleLayer, setLayerOpacity, moveLayer } =
     useGeospatialLayerPreferences();
 
-  const showAgenciesPanel = visibility.agencyMatches;
   const showCourthousesPanel = visibility.courthouses;
   const showAlprCameras = visibility.alpr;
 
   const toggleFilters = () => setFiltersOpen((open) => !open);
   const toggleColumnSelector = () => setShowColumnSelector((open) => !open);
-  const toggleAgenciesPanel = () => toggleLayer('agencyMatches');
   const toggleCourthousesPanel = () => toggleLayer('courthouses');
   const toggleAlprCameras = () => toggleLayer('alpr');
 
@@ -41,7 +39,6 @@ export const useExplorerPanels = () => {
   return {
     filtersOpen,
     showColumnSelector,
-    showAgenciesPanel,
     showCourthousesPanel,
     showAlprCameras,
     showWigleV2: visibility.wigleV2,
@@ -56,7 +53,6 @@ export const useExplorerPanels = () => {
     mapLayerOrder: order,
     toggleFilters,
     toggleColumnSelector,
-    toggleAgenciesPanel,
     toggleCourthousesPanel,
     toggleAlprCameras,
     toggleWigleV2: () => toggleLayer('wigleV2'),

@@ -7,12 +7,9 @@ import { useAdminRuntimeConfig } from '../hooks/useAdminRuntimeConfig';
 import { logError } from '../logging/clientLogger';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPanel';
-import { useNearestAgencies } from './geospatial/hooks/useNearestAgencies';
-import { useNearestCourthouses } from './geospatial/hooks/useNearestCourthouses';
 import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
 import { useGeospatialOverlayOrchestration } from './geospatial/hooks/useGeospatialOverlayOrchestration';
 import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
-import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
@@ -125,40 +122,6 @@ export default function GeospatialExplorer() {
     showMediaLocations,
   });
 
-  // Agency Context
-  const {
-    agencies,
-    loading: agenciesLoading,
-    error: agenciesError,
-  } = useNearestAgencies(
-    state.showAgenciesPanel
-      ? selectedNetworks.size >= 1
-        ? Array.from(selectedNetworks)
-        : null
-      : null
-  );
-
-  const {
-    courthouses,
-    loading: courthousesLoading,
-    error: courthousesError,
-  } = useNearestCourthouses(
-    state.showCourthousesPanel
-      ? selectedNetworks.size >= 1
-        ? Array.from(selectedNetworks)
-        : null
-      : null
-  );
-
-  // Map Layer Integration (Hook-based)
-  useAgencyLayer({
-    mapReady: state.mapReady,
-    mapRef: state.mapRef,
-    mapboxRef: state.mapboxRef,
-    agencies,
-    showAgenciesPanel: state.showAgenciesPanel,
-  });
-
   const wigleResultLayers = useGeospatialWigleResultLayers({
     mapRef: state.mapRef,
     mapboxRef: state.mapboxRef,
@@ -254,13 +217,6 @@ export default function GeospatialExplorer() {
             manualSiblingTarget={state.manualSiblingTarget}
             handleMarkSiblingPair={state.handleMarkSiblingPair}
             siblingPairLoading={state.siblingPairLoading}
-            agencies={agencies}
-            agenciesLoading={agenciesLoading}
-            agenciesError={agenciesError}
-            courthouses={courthouses}
-            courthousesLoading={courthousesLoading}
-            courthousesError={courthousesError}
-            mapRef={state.mapRef}
             {...overlay}
           />
           <MapRadiusContextMenu

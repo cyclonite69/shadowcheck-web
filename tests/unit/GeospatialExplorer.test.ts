@@ -41,9 +41,9 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useNetworkSelection');
     expect(source).toContain('useObservations');
     expect(source).toContain('useGeospatialExplorerState');
-    expect(source).toContain('useNearestAgencies');
-    expect(source).toContain('useNearestCourthouses');
-    expect(source).toContain('useAgencyLayer');
+    expect(source).not.toContain('useNearestAgencies');
+    expect(source).not.toContain('useNearestCourthouses');
+    expect(source).not.toContain('useAgencyLayer');
     expect(source).toContain('useGeospatialWigleResultLayers');
     expect(source).toContain('shotspotterZones: state.showShotspotterZones');
     expect(source).toContain('shotspotterSensors: state.showShotspotterSensors');
@@ -83,10 +83,10 @@ describe('GeospatialExplorer component structure', () => {
   });
 
   test('keeps the current overlay orchestration boundary in the page component', () => {
-    expect(source).toContain('useNearestAgencies(');
-    expect(source).toContain('useNearestCourthouses(');
+    expect(source).not.toContain('useNearestAgencies(');
+    expect(source).not.toContain('useNearestCourthouses(');
     expect(source).toContain('useGeospatialOverlayOrchestration({');
-    expect(source).toContain('useAgencyLayer({');
+    expect(source).not.toContain('useAgencyLayer({');
     expect(source).toContain('useGeospatialWigleResultLayers({');
     expect(source).toContain('<GeospatialOverlayContent');
     expect(source).toContain('<MapRadiusContextMenu');

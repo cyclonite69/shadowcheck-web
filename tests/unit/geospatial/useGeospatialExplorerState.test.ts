@@ -112,12 +112,10 @@ describe('useGeospatialExplorerState hook structure', () => {
       'moveColumn',
       'filtersOpen',
       'showColumnSelector',
-      'showAgenciesPanel',
       'showCourthousesPanel',
       'showAlprCameras',
       'toggleFilters',
       'toggleColumnSelector',
-      'toggleAgenciesPanel',
       'toggleCourthousesPanel',
       'toggleAlprCameras',
       'locationSearch',
@@ -181,5 +179,8 @@ describe('useGeospatialExplorerState hook structure', () => {
 
       expect(hasExactKey).toBe(true);
     });
+
+    expect(source).not.toContain('showAgenciesPanel');
+    expect(source).not.toContain('toggleAgenciesPanel');
   });
 });
