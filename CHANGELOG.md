@@ -1520,7 +1520,7 @@
 - **wigle:** cached user-stats on rate-limit, api endpoint alignment, metrics update ([cd81b9f](https://github.com/cyclonite69/shadowcheck-web/commit/cd81b9f48de5eb2834a58b38d05275b60eea608e))
 - **wigle:** consolidate all outbound calls through wigleGateway.ts ([5b7f503](https://github.com/cyclonite69/shadowcheck-web/commit/5b7f5038f1f1df36a9380369da6e95b4eac3b9f2))
 - **wigle:** consolidate all outbound calls through wigleGateway.ts ([#295](https://github.com/cyclonite69/shadowcheck-web/issues/295)) ([c86c0c4](https://github.com/cyclonite69/shadowcheck-web/commit/c86c0c454e23fbe0212703c3d4865a111014844f))
-- **wigle:** convert WiGLE overlays to vector tiles ([b0c5370](https://github.com/cyclonite69/shadowcheck-web/commit/b0c537032da00733c8899216f1d4af5b1d881979))
+- **wigle:** convert WiGLE overlays to vector tiles ([37f9605](https://github.com/cyclonite69/shadowcheck-web/commit/37f96057235097c3e13609fd9d394281aca80ece))
 - **wigle:** enrich WiGLE v3 and detail results with local forensic data (threat scores, geocoding, manufacturer) ([516e558](https://github.com/cyclonite69/shadowcheck-web/commit/516e5585c13cdd35a1ac5839315e6e7dfae7db89))
 - **wigleEnrichment:** support multi-select targeted batch enrichment (up to 100) ([bcc8baa](https://github.com/cyclonite69/shadowcheck-web/commit/bcc8baa29a7298e01f871672984714f311241e51))
 - **wigle:** implement asynchronous import dispatch and advisory locking ([f917ece](https://github.com/cyclonite69/shadowcheck-web/commit/f917ece5a1530064a27f30a5fb78140a548301f8))

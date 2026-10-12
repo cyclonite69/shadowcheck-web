@@ -1,6 +1,7 @@
 # Observations Sources — Schema Reference
 
-Last verified: 2026-04-25 via live DB (`app` schema on `shadowcheck_postgres`).
+Schema last verified: 2026-04-25 via live DB (`app` schema on `shadowcheck_postgres`).
+The observation row count was updated to the operator-confirmed 870,846 on 2026-10-09.
 
 This file exists so agents do not need SSM round trips to discover table shapes.
 Update it whenever a migration changes columns, indexes, or row counts significantly.
@@ -11,7 +12,7 @@ Update it whenever a migration changes columns, indexes, or row counts significa
 
 | Layer         | Table                          | Rows (approx) | Geom col   | Signal col                | Time col               | Network ID col              |
 | ------------- | ------------------------------ | ------------- | ---------- | ------------------------- | ---------------------- | --------------------------- |
-| Field (local) | `app.observations`             | ~655,542      | `geom`     | `level` (int, dBm)        | `time` / `observed_at` | `bssid`                     |
+| Field (local) | `app.observations`             | 870,846       | `geom`     | `level` (int, dBm)        | `time` / `observed_at` | `bssid`                     |
 | WiGLE v2      | `app.wigle_v2_networks_search` | ~86,007       | `location` | — none —                  | `lasttime`             | `bssid`                     |
 | WiGLE v3      | `app.wigle_v3_observations`    | ~86,763       | `location` | `signal` (int, dBm)       | `observed_at`          | `netid` (= BSSID value, FK) |
 | KML           | `app.kml_points`               | ~316,445      | `location` | `signal_dbm` (float, dBm) | `observed_at`          | `bssid`                     |
@@ -22,7 +23,7 @@ All geometry columns are `geometry(Point,4326)` with GIST indexes. No migrations
 
 ## `app.observations` — Field / Local Data
 
-**Row count:** ~655,542  
+**Row count:** 870,846 (operator-confirmed 2026-10-09)
 **PK:** `id bigint` (sequence `observations_v2_id_seq`)
 
 | Column                | Type                 | Notes                                |
@@ -58,6 +59,32 @@ All geometry columns are `geometry(Point,4326)` with GIST indexes. No migrations
 - `idx_observations_v2_geom` — GIST on `geom` (secondary)
 - `idx_observations_bssid_time_desc` — btree `(bssid, time DESC)`
 - `idx_obs_device_time` — btree `(device_id, time)`
+
+### Field Observation Vector Tiles
+
+`app.fn_get_observation_tile(z, x, y)` returns MVT with source-layer name `observations`,
+including `id`, `bssid`, `ssid`, `level`, and `radio_type`. It uses the `geom` GiST
+index for tile bounds, returns raw rows at zoom 13 and above, and selects the strongest
+signal per 4-pixel projected grid cell below zoom 13. The API serves the result at
+`GET /api/wigle/tiles/observations/:z/:x/:y.pbf`.
+
+### Persistent Geospatial Explorer Menu Vector Tiles
+
+`GET /api/geospatial/tiles/:layer/:z/:x/:y.pbf` serves authenticated Mapbox Vector Tiles
+for the persistent Geospatial Explorer menu. Supported `layer` names and PostGIS
+functions are `observations` (`fn_get_observation_tile`), `alpr`
+(`fn_get_alpr_camera_tile`), `kml` (`fn_get_kml_tile`), `wigle-v2`
+(`fn_get_wigle_v2_tile`), `wigle-v3` (`fn_get_wigle_v3_tile`), `deflock`
+(`fn_get_deflock_camera_tile`), `agencies` (`fn_get_agency_offices_tile`),
+`courthouses` (`fn_get_courthouses_tile`), and `shotspotter`
+(`fn_get_shotspotter_tile`).
+
+Every generator first limits candidates using the source geometry's spatial index and
+the tile bounds. Dense point layers retain one deterministic feature per 4-pixel
+projected grid cell below zoom 13; full point detail is returned from zoom 13 onward.
+The ShotSpotter response combines `shotspotter_zones` and `shotspotter_sensors` MVT
+layers without joining their rows. Zone and sensor source tables and their existing
+ingestion/query pipeline are unchanged.
 
 ### `source_tag` values (as of 2026-04-25)
 

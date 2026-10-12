@@ -39,6 +39,19 @@ Current active path (Phase 3 baseline consolidation applied 2026-04-16):
 
 8. `20260416_drop_unused_indexes.sql` — Remove 14 unused indexes (92 MB reclamation)
 
+### Subsequent Vector-Tile Migrations
+
+The following additive migration files are part of the current worktree and must
+be applied through `scripts/apply-migration.sh` after review and operator approval:
+
+- `20261009_110_fn_get_alpr_camera_tile.sql`
+- `20261009_120_fn_get_observation_tile.sql`
+- `20261010_130_fn_get_geospatial_menu_tiles.sql`
+
+The 2026-10-10 migration includes the remaining Geospatial Explorer tile
+functions and bounds low-zoom ALPR output. Do not apply migration files
+manually or assume a file present in the worktree has already been applied.
+
 ## Archived Migrations
 
 Individual migrations from before Phase 3 consolidation (applied 2026-04-16) are now in `archive/`:
