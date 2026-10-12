@@ -296,4 +296,8 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req: Request, res: Res
   }
 });
 
+const { requireAuth } = require('../../../middleware/authMiddleware');
+const geospatialTileRoutes = require('./geospatial/tiles').default;
+router.use('/api/geospatial/tiles', requireAuth, geospatialTileRoutes);
+
 module.exports = router;

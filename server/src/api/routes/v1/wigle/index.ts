@@ -16,6 +16,7 @@ import enrichmentRoutes from './enrichment';
 import observationsRoutes from './observations';
 import statsRoutes from './stats';
 import ledgerRoutes from './ledger';
+import tileRoutes from './tiles';
 
 // Mount routes
 router.use('/', liveRoutes);
@@ -27,5 +28,6 @@ router.use('/', enrichmentRoutes);
 router.use('/', observationsRoutes);
 router.use('/', statsRoutes);
 router.use('/', ledgerRoutes);
+router.use('/', tileRoutes);
 
 export default router;

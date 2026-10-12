@@ -868,6 +868,14 @@ Get WiGLE observations for network.
 
 **Note:** WiGLE observations now use the correct 'app' schema namespace instead of 'public'.
 
+### GET /api/wigle/tiles/observations/:z/:x/:y.pbf
+
+Returns a Mapbox Vector Tile for field observations in the requested XYZ tile. Coordinates
+must be integers, zoom must be between 0 and 22, and `x`/`y` must be less than `2^z`.
+Returns `204 No Content` when the tile contains no observations; otherwise returns
+`application/vnd.mapbox-vector-tile`. The WiglePage Field Data layer streams these tiles
+directly rather than fetching paginated GeoJSON.
+
 ### GET /api/wigle/quota-status 🔒
 
 Return the current WiGLE request-ledger quota status (daily call counts, remaining budget, reset time). Requires admin role.

@@ -129,6 +129,30 @@ describe('API test endpoint safety registry', () => {
     });
   });
 
+  test('registers the field observation MVT tile endpoint', () => {
+    expect(API_ENDPOINTS).toContainEqual(
+      expect.objectContaining({
+        method: 'GET',
+        path: '/api/wigle/tiles/observations/:z/:x/:y.pbf',
+      })
+    );
+  });
+
+  test('registers the parameterized Geospatial menu MVT tile endpoint', () => {
+    expect(API_ENDPOINTS).toContainEqual(
+      expect.objectContaining({
+        method: 'GET',
+        path: '/api/geospatial/tiles/:layer/:z/:x/:y.pbf',
+        params: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'layer',
+            options: expect.arrayContaining(['observations', 'shotspotter']),
+          }),
+        ]),
+      })
+    );
+  });
+
   test('registers the Kepler Arrow observation stream endpoint', () => {
     expect(API_ENDPOINTS).toContainEqual(
       expect.objectContaining({

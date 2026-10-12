@@ -283,6 +283,48 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Surveillance',
+    label: 'ALPR Camera Vector Tile (Experimental)',
+    description: 'Mapbox Vector Tile for an ALPR camera XYZ tile coordinate',
+    path: '/api/wigle/tiles/alpr/:z/:x/:y.pbf',
+    method: 'GET',
+  },
+  {
+    category: 'Geospatial',
+    label: 'Field Observation Vector Tile',
+    description: 'Mapbox Vector Tile for a field-observation XYZ tile coordinate',
+    path: '/api/wigle/tiles/observations/:z/:x/:y.pbf',
+    method: 'GET',
+  },
+  {
+    category: 'Geospatial',
+    label: 'Geospatial Menu Vector Tile',
+    description: 'Authenticated MVT for a supported persistent Geospatial Explorer layer',
+    path: '/api/geospatial/tiles/:layer/:z/:x/:y.pbf',
+    method: 'GET',
+    params: [
+      {
+        name: 'layer',
+        label: 'Layer',
+        type: 'select',
+        options: [
+          'observations',
+          'alpr',
+          'kml',
+          'wigle-v2',
+          'wigle-v3',
+          'deflock',
+          'agencies',
+          'courthouses',
+          'shotspotter',
+        ],
+      },
+      { name: 'z', label: 'Zoom', type: 'number', defaultValue: '0' },
+      { name: 'x', label: 'Tile X', type: 'number', defaultValue: '0' },
+      { name: 'y', label: 'Tile Y', type: 'number', defaultValue: '0' },
+    ],
+  },
+  {
+    category: 'Surveillance',
     label: 'ShotSpotter Zones',
     description:
       'GeoJSON FeatureCollection of ShotSpotter acoustic gunshot detection coverage zones',
