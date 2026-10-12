@@ -4,12 +4,7 @@ import { resetAgencyOfficeLayers } from '../hooks/useAgencyOffices';
 import type { AgencyVisibility } from '../hooks/useAgencyOffices';
 import { resetFederalCourthouseLayers } from '../hooks/useFederalCourthouses';
 import { resetKmlLayers } from '../geospatial/layers/kmlLayers';
-import {
-  resetV2Layers,
-  resetV3Layers,
-  resetFieldDataLayers,
-  FIELD_DATA_SOURCE,
-} from '../geospatial/layers/mapLayers';
+import { resetV2Layers, resetV3Layers } from '../geospatial/layers/mapLayers';
 import { runWhenStyleReady } from './mapLifecycle';
 
 interface UseWigleClusterLayersProps {
@@ -20,7 +15,6 @@ interface UseWigleClusterLayersProps {
   v2FCRef: MutableRefObject<any>;
   v3FCRef: MutableRefObject<any>;
   kmlFCRef: MutableRefObject<any>;
-  fieldDataFCRef: MutableRefObject<any>;
   agencyData: any;
   agencyVisibility: AgencyVisibility;
   courthouseData: any;
@@ -37,7 +31,6 @@ export const useWigleClusterLayers = ({
   v2FCRef,
   v3FCRef,
   kmlFCRef,
-  fieldDataFCRef,
   agencyData,
   agencyVisibility,
   courthouseData,
@@ -74,14 +67,6 @@ export const useWigleClusterLayers = ({
         kmlSrc.setData(kmlFCRef.current);
       }
 
-      if (map.getSource(FIELD_DATA_SOURCE)) {
-        resetFieldDataLayers(map, fieldDataFCRef, clusteringEnabled);
-        const fieldSrc = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
-        if (fieldSrc && fieldDataFCRef.current) {
-          fieldSrc.setData(fieldDataFCRef.current);
-        }
-      }
-
       resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clusteringEnabled);
       resetFederalCourthouseLayers(
         map,
@@ -103,7 +88,6 @@ export const useWigleClusterLayers = ({
     clusteringEnabled,
     courthouseData,
     federalCourthousesVisible,
-    fieldDataFCRef,
     kmlFCRef,
     mapReady,
     mapRef,

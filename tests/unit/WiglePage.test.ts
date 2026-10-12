@@ -31,7 +31,6 @@ describe('WiglePage component structure', () => {
       'useWigleData',
       'useWigleClusterLayers',
       'useWigleKmlData',
-      'useWigleFieldData',
       'useWigleMapInit',
       'useWigleDataSync',
       'useWigleAutoFetch',
@@ -75,5 +74,30 @@ describe('WiglePage component structure', () => {
     expect(source).toContain('onToggleLayer={toggleLayer}');
     expect(source).toContain('mapReady={mapReady}');
     expect(source).toContain('adaptedFilters={adaptedFilters}');
+  });
+
+  test('exposes the experimental MVT ALPR option in the existing layer controls', () => {
+    const controlPanelPath = path.resolve(
+      process.cwd(),
+      'client/src/components/WigleControlPanel.tsx'
+    );
+    const controlPanelSource = fs.readFileSync(controlPanelPath, 'utf8');
+
+    expect(controlPanelSource).toContain('MVT ALPR Cameras (Experimental)');
+    expect(controlPanelSource).toContain("onToggleLayer('mvtAlprCameras')");
+  });
+
+  test('streams Field Data from MVT without the paginated REST fetch', () => {
+    expect(source).not.toContain('useWigleFieldData');
+    expect(source).not.toContain('fetchFieldData');
+    expect(source).not.toContain('fieldDataFCRef');
+
+    const overlayManagerPath = path.resolve(
+      process.cwd(),
+      'client/src/components/wigle/useWigleOverlayManager.ts'
+    );
+    const overlayManagerSource = fs.readFileSync(overlayManagerPath, 'utf8');
+    expect(overlayManagerSource).toContain('currentLayers.showFieldData');
+    expect(overlayManagerSource).toContain('ensureFieldDataMvtLayer(map)');
   });
 });

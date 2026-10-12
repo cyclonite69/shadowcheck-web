@@ -11,6 +11,7 @@ export interface WigleLayerState {
   federalCourthouses: boolean;
   deflockCameras: boolean;
   alprCameras: boolean;
+  mvtAlprCameras: boolean;
   shotspotterZones: boolean;
   shotspotterSensors: boolean;
   homeArea: boolean;

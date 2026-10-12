@@ -1,16 +1,19 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { GeoJSONSource, Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import {
-  ensureFieldDataLayer,
   ensureV2Layers,
   ensureV3Layers,
   applyLayerVisibility,
+  ensureAlprMvtLayer,
+  startAlprMvtPulse,
   setPointRadius,
-  updateFieldDataSource,
+  ensureFieldDataMvtLayer,
 } from '../geospatial/layers/mapLayers';
 import { ensureKmlLayers } from '../geospatial/layers/kmlLayers';
 import { attachClickHandlers } from '../geospatial/layers/mapHandlers';
+import { attachAlprMvtHandlers } from '../geospatial/layers/alprMvtHandlers';
+import { attachFieldDataMvtHandlers } from '../geospatial/layers/fieldDataMvtHandlers';
 import { updateAllClusterColors } from '../geospatial/layers/clusterColors';
 import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './mapLifecycle';
 import { resetAgencyOfficeLayers, type AgencyVisibility } from '../hooks/useAgencyOffices';
@@ -32,7 +35,6 @@ export interface UseWigleOverlayManagerParams {
   v2FCRef: React.MutableRefObject<any>;
   v3FCRef: React.MutableRefObject<any>;
   kmlFCRef: React.MutableRefObject<any>;
-  fieldDataFCRef: React.MutableRefObject<any>;
   clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>;
   wigleHandlersAttachedRef: React.MutableRefObject<boolean>;
   agencyData: any;
@@ -60,7 +62,6 @@ export function useWigleOverlayManager({
   v2FCRef,
   v3FCRef,
   kmlFCRef,
-  fieldDataFCRef,
   clusterColorCache,
   wigleHandlersAttachedRef,
   agencyData,
@@ -76,6 +77,9 @@ export function useWigleOverlayManager({
   show3dBuildings,
   showTerrain,
 }: UseWigleOverlayManagerParams) {
+  const alprMvtLifecycleCleanupRef = useRef<(() => void) | null>(null);
+  const fieldDataMvtLifecycleCleanupRef = useRef<(() => void) | null>(null);
+
   const updateAllClusterColorsCallback = useCallback(() => {
     if (mapRef.current) {
       updateAllClusterColors(mapRef.current, clusterColorCache);
@@ -151,9 +155,10 @@ export function useWigleOverlayManager({
           kmlSource.setData(kmlFCRef.current);
         }
 
-        if (currentLayers.showFieldData && fieldDataFCRef.current) {
-          ensureFieldDataLayer(map, fieldDataFCRef, clustering);
-          updateFieldDataSource(map, fieldDataFCRef.current);
+        fieldDataMvtLifecycleCleanupRef.current?.();
+        fieldDataMvtLifecycleCleanupRef.current = null;
+        if (currentLayers.showFieldData) {
+          ensureFieldDataMvtLayer(map);
         }
 
         resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clustering);
@@ -164,11 +169,16 @@ export function useWigleOverlayManager({
           clustering
         );
 
+        alprMvtLifecycleCleanupRef.current?.();
+        alprMvtLifecycleCleanupRef.current = null;
         if (currentLayers.deflockCameras && deflockData?.features?.length) {
           ensureDeflockLayers(map, deflockData, clustering);
         }
         if (currentLayers.alprCameras && alprData?.features?.length) {
           ensureAlprLayers(map, alprData, clustering);
+        }
+        if (currentLayers.mvtAlprCameras) {
+          ensureAlprMvtLayer(map);
         }
         if (currentLayers.shotspotterZones && shotspotterData?.features?.length) {
           ensureShotspotterLayers(map, shotspotterData);
@@ -181,6 +191,22 @@ export function useWigleOverlayManager({
 
         setPointRadius(map, pointSize);
         applyLayerVisibilityCallback();
+        if (currentLayers.mvtAlprCameras) {
+          const stopPulse = startAlprMvtPulse(map);
+          const detachHandlers = mapboxRef.current
+            ? attachAlprMvtHandlers(map, mapboxRef.current)
+            : () => {};
+          alprMvtLifecycleCleanupRef.current = () => {
+            stopPulse();
+            detachHandlers();
+          };
+        }
+        if (currentLayers.showFieldData && mapboxRef.current) {
+          fieldDataMvtLifecycleCleanupRef.current = attachFieldDataMvtHandlers(
+            map,
+            mapboxRef.current
+          );
+        }
         updateAllClusterColorsCallback();
         apply3dBuildings(map, mapStyle, show3dBuildings);
         applyTerrain(map, mapStyle, showTerrain);
@@ -196,7 +222,6 @@ export function useWigleOverlayManager({
       deflockData,
       alprData,
       ensureAllLayers,
-      fieldDataFCRef,
       homeLocation,
       kmlFCRef,
       layersRef,
@@ -211,7 +236,19 @@ export function useWigleOverlayManager({
       v2FCRef,
       v3FCRef,
       clusteringEnabledRef,
+      alprMvtLifecycleCleanupRef,
+      mapboxRef,
     ]
+  );
+
+  useEffect(
+    () => () => {
+      alprMvtLifecycleCleanupRef.current?.();
+      alprMvtLifecycleCleanupRef.current = null;
+      fieldDataMvtLifecycleCleanupRef.current?.();
+      fieldDataMvtLifecycleCleanupRef.current = null;
+    },
+    []
   );
 
   useEffect(() => {
@@ -224,6 +261,7 @@ export function useWigleOverlayManager({
     clusteringEnabled,
     layers.deflockCameras,
     layers.alprCameras,
+    layers.mvtAlprCameras,
     layers.federalCourthouses,
     layers.fieldOffices,
     layers.kml,

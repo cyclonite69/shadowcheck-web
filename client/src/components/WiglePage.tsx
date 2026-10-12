@@ -20,7 +20,6 @@ import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './geospatial/layers/useWigleData';
 import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './geospatial/layers/useWigleKmlData';
-import { useWigleFieldData } from './geospatial/layers/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
 import { kmlRowsToGeoJSON } from './geospatial/layers/kmlLayers';
 import { rowsToGeoJSON, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
@@ -96,12 +95,9 @@ const WiglePage: React.FC = () => {
   );
   const wigleHandlersAttachedRef = useRef(false);
   const [clusteringEnabled, setClusteringEnabled] = useState(true);
-  const showFieldDataRef = useRef(layers.showFieldData);
-  showFieldDataRef.current = layers.showFieldData;
   const clusteringEnabledRef = useRef(true);
   clusteringEnabledRef.current = clusteringEnabled;
   const clusteringChangedRef = useRef(false);
-  const fieldDataFCRef = useRef<any>(null);
 
   const {
     v2Loading,
@@ -215,7 +211,6 @@ const WiglePage: React.FC = () => {
     v2FCRef,
     v3FCRef,
     kmlFCRef,
-    fieldDataFCRef,
     clusterColorCache,
     wigleHandlersAttachedRef,
     agencyData,
@@ -250,19 +245,6 @@ const WiglePage: React.FC = () => {
     updateAllClusterColorsCallback,
   });
   useHomeLocationLayer({ mapReady, mapRef, homeLocation, visible: layers.homeArea });
-  const {
-    loading: fieldDataLoading,
-    error: fieldDataError,
-    featureCount: fieldDataFeatureCount,
-    fetchFieldData,
-  } = useWigleFieldData({
-    mapRef,
-    mapReady,
-    mapboxRef,
-    showFieldData: layers.showFieldData,
-    clusteringEnabled,
-    fieldDataFCRef,
-  });
   useWigleClusterLayers({
     mapRef,
     mapReady,
@@ -271,7 +253,6 @@ const WiglePage: React.FC = () => {
     v2FCRef,
     v3FCRef,
     kmlFCRef,
-    fieldDataFCRef,
     agencyData,
     agencyVisibility,
     courthouseData,
@@ -323,8 +304,6 @@ const WiglePage: React.FC = () => {
     v2FCRef,
     v3FCRef,
     kmlFCRef,
-    fieldDataFCRef,
-    showFieldDataRef,
     styleEffectInitRef,
     wigleHandlersAttachedRef,
     applyEnabledWigleOverlays,
@@ -377,20 +356,16 @@ const WiglePage: React.FC = () => {
             if (layers.kml) {
               tasks.push(fetchKmlPoints());
             }
-            if (layers.showFieldData) {
-              tasks.push(fetchFieldData());
-            }
             await Promise.all(tasks);
             applyEnabledWigleOverlays('load-points');
           })();
         }}
-        loading={v2Loading || v3Loading || kmlLoading || fieldDataLoading}
-        canLoadPoints={layers.v2 || layers.v3 || layers.kml || layers.showFieldData}
+        loading={v2Loading || v3Loading || kmlLoading}
+        canLoadPoints={layers.v2 || layers.v3 || layers.kml}
         rowsLoaded={
           (layers.v2 ? v2Rows.length : 0) +
           (layers.v3 ? v3Rows.length : 0) +
           (layers.kml ? kmlRows.length : 0) +
-          (layers.showFieldData ? fieldDataFeatureCount : 0) +
           ((layers.fieldOffices
             ? (agencyData?.features?.filter(
                 (f: any) => f.properties?.office_type === 'field_office'
@@ -433,7 +408,7 @@ const WiglePage: React.FC = () => {
       />
       <WigleMap
         mapContainerRef={mapContainerRef}
-        error={mapError || dataError || kmlError || fieldDataError}
+        error={mapError || dataError || kmlError}
         mapReady={mapReady}
         mapRef={mapRef}
         homeLocation={homeLocation}

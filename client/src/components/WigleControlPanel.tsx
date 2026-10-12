@@ -129,6 +129,12 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             color="#d946ef"
           />
           <LayerToggle
+            label="MVT ALPR Cameras (Experimental)"
+            enabled={layers.mvtAlprCameras}
+            onChange={() => onToggleLayer('mvtAlprCameras')}
+            color="#ec4899"
+          />
+          <LayerToggle
             label="Home Area"
             enabled={layers.homeArea}
             onChange={() => onToggleLayer('homeArea')}
