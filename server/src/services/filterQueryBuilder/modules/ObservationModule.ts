@@ -9,8 +9,10 @@ export class ObservationModule {
     return buildObservationFilters(this.ctx);
   }
 
-  public buildFilteredObservationsCte(options: { selectedBssids?: string[] } = {}): CteResult {
-    const { selectedBssids = [] } = options;
+  public buildFilteredObservationsCte(
+    options: { selectedBssids?: string[]; includeObservationMetadata?: boolean } = {}
+  ): CteResult {
+    const { selectedBssids = [], includeObservationMetadata = false } = options;
     const { where, joins } = this.buildObservationFilters();
 
     if (selectedBssids.length > 0) {
@@ -19,6 +21,7 @@ export class ObservationModule {
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     const joinClause = joins.join('\n        ');
+    const observationMetadata = includeObservationMetadata ? 'o.id, o.observed_at_ms,' : '';
 
     const homeCte = this.ctx.requiresHome
       ? `home AS (
@@ -33,6 +36,7 @@ export class ObservationModule {
       WITH ${homeCte}
       filtered_obs AS (
         SELECT 
+          ${observationMetadata}
           o.bssid,
           o.ssid,
           o.lat,

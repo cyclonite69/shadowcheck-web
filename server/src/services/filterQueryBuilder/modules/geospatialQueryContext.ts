@@ -26,8 +26,12 @@ export function buildGeospatialQueryContext(
     limit !== null ? `LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}` : '';
 
   const networkLocationsJoin = SqlFragmentLibrary.joinNetworkLocations('ne', locationMode);
+  const observationMetadata = options.includeObservationMetadata
+    ? 'o.id, o.level, o.observed_at_ms,'
+    : '';
 
   const selectClause = `
+        ${observationMetadata}
         o.bssid,
         o.ssid,
         COALESCE(o.radio_capabilities, ne.capabilities) AS capabilities,

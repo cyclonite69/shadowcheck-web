@@ -990,6 +990,10 @@ Get data for Kepler.gl visualization.
 
 Get observations layer data.
 
+### GET /api/kepler/observations.arrow
+
+Stream filtered observations as an Apache Arrow IPC record-batch stream for Kepler temporal visualization.
+
 ### GET /api/kepler/networks
 
 Get networks layer data.

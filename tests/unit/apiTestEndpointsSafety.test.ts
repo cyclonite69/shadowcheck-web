@@ -128,4 +128,13 @@ describe('API test endpoint safety registry', () => {
       expect(match).toBeUndefined();
     });
   });
+
+  test('registers the Kepler Arrow observation stream endpoint', () => {
+    expect(API_ENDPOINTS).toContainEqual(
+      expect.objectContaining({
+        method: 'GET',
+        path: '/api/kepler/observations.arrow',
+      })
+    );
+  });
 });

@@ -328,6 +328,17 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql.toLowerCase()).toMatch(/lat|lon/);
   });
 
+  test('includes Arrow observation metadata only when requested', () => {
+    const ordinaryQuery = new UniversalFilterQueryBuilder({}, {}).buildGeospatialQuery();
+    const arrowQuery = new UniversalFilterQueryBuilder({}, {}).buildGeospatialQuery({
+      includeObservationMetadata: true,
+    });
+
+    expect(ordinaryQuery.sql).not.toContain('o.id, o.observed_at_ms');
+    expect(arrowQuery.sql).toContain('o.id, o.observed_at_ms');
+    expect(arrowQuery.sql).toContain('o.id, o.level, o.observed_at_ms');
+  });
+
   test('boundingBox crossing antimeridian uses split envelopes', () => {
     const result = new UniversalFilterQueryBuilder(
       { boundingBox: { north: 10, south: -10, east: -170, west: 170 } },

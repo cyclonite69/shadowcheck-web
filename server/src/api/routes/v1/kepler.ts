@@ -72,6 +72,38 @@ router.get('/kepler/observations', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/kepler/observations.arrow
+ * Streams filtered observations as an Apache Arrow IPC record-batch stream.
+ */
+router.get('/kepler/observations.arrow', async (req: Request, res: Response) => {
+  const ac = new AbortController();
+  res.once('close', () => {
+    if (!res.writableEnded) {
+      ac.abort();
+    }
+  });
+
+  try {
+    const filters = parseJsonParam(req.query.filters, {}, 'filters');
+    const enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+    const limitRaw = req.query.limit;
+    const limit = limitRaw ? parseInt(String(limitRaw), 10) : null;
+
+    await keplerService.streamKeplerObservationsArrow(filters, enabled, limit, res, ac.signal);
+  } catch (error: any) {
+    if (res.headersSent) {
+      return;
+    }
+    if (error.status === 400 || error.message?.includes('Invalid JSON')) {
+      return res.status(400).json({ ok: false, errors: error.errors || [error.message] });
+    }
+    const msg = error.message || String(error);
+    logger.error(`Arrow observations stream error: ${msg}`, { error });
+    res.status(error.status || 500).json({ ok: false, error: msg });
+  }
+});
+
+/**
  * GET /api/kepler/networks
  * Returns network summaries for Kepler.gl.
  */

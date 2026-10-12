@@ -5,6 +5,7 @@ const keplerService = {
   getKeplerData: jest.fn(),
   getKeplerObservations: jest.fn(),
   streamKeplerObservations: jest.fn(),
+  streamKeplerObservationsArrow: jest.fn(),
   getKeplerNetworks: jest.fn(),
 };
 
@@ -101,6 +102,46 @@ describe('kepler routes', () => {
 
     it('returns 400 when invalid JSON is provided', async () => {
       const res = await request(app).get('/api/kepler/observations').query({ enabled: 'invalid' });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /kepler/observations.arrow', () => {
+    it('streams binary Arrow bytes with the Arrow IPC content type', async () => {
+      const bytes = Buffer.from([0x41, 0x52, 0x52, 0x4f, 0x57]);
+      keplerService.streamKeplerObservationsArrow.mockImplementationOnce(
+        async (_filters, _enabled, _limit, res) => {
+          res.writeHead(200, { 'Content-Type': 'application/vnd.apache.arrow.stream' });
+          res.end(bytes);
+        }
+      );
+
+      const res = await request(app)
+        .get('/api/kepler/observations.arrow')
+        .query({ filters: '{"type":"W"}', enabled: '{"type":true}' })
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => chunks.push(chunk));
+          response.on('end', () => callback(null, Buffer.concat(chunks)));
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/vnd.apache.arrow.stream');
+      expect(res.body).toEqual(bytes);
+      expect(keplerService.streamKeplerObservationsArrow).toHaveBeenCalledWith(
+        { type: 'W' },
+        { type: true },
+        null,
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('returns 400 for invalid filter JSON', async () => {
+      const res = await request(app)
+        .get('/api/kepler/observations.arrow')
+        .query({ filters: 'invalid-json' });
       expect(res.status).toBe(400);
     });
   });

@@ -10,7 +10,10 @@ import {
 export class GeospatialModule {
   constructor(
     private ctx: FilterBuildContext,
-    private getFilteredObservationsCte: (options?: { selectedBssids?: string[] }) => CteResult
+    private getFilteredObservationsCte: (options?: {
+      selectedBssids?: string[];
+      includeObservationMetadata?: boolean;
+    }) => CteResult
   ) {}
 
   public buildGeospatialQuery(options: GeospatialOptions = {}): FilteredQueryResult {
@@ -22,9 +25,15 @@ export class GeospatialModule {
 
   private buildGeospatialQueryImpl(options: GeospatialOptions = {}): FilteredQueryResult {
     const { selectedBssids = [] } = options;
+    const cteOptions: { selectedBssids: string[]; includeObservationMetadata?: boolean } = {
+      selectedBssids,
+    };
+    if (options.includeObservationMetadata) {
+      cteOptions.includeObservationMetadata = true;
+    }
     const context = buildGeospatialQueryContext(
       this.ctx,
-      this.getFilteredObservationsCte({ selectedBssids }),
+      this.getFilteredObservationsCte(cteOptions),
       options
     );
     return buildGeospatialListQuery(this.ctx, context);

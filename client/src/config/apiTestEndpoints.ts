@@ -1490,6 +1490,17 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Kepler',
+    label: 'Kepler Observations Arrow Stream',
+    path: '/api/kepler/observations.arrow',
+    method: 'GET',
+    params: [
+      { name: 'limit', label: 'Limit', placeholder: 'no default cap' },
+      { name: 'filters', label: 'Filters (JSON)', defaultValue: '{}' },
+      { name: 'enabled', label: 'Enabled Filters (JSON)', defaultValue: '{}' },
+    ],
+  },
+  {
+    category: 'Kepler',
     label: 'Kepler Networks',
     path: '/api/kepler/networks',
     method: 'GET',

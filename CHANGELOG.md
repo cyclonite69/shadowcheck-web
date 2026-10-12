@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-09)
+# 1.0.0 (2026-10-12)
 
 ### Bug Fixes
 
@@ -1295,7 +1295,7 @@
 - **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))
 - **geospatial:** consolidate surveillance detection as device class ([09079b4](https://github.com/cyclonite69/shadowcheck-web/commit/09079b425d6dfd19f56d2814de52e3a5639f999e))
 - **geospatial:** enhance network tooltips and enable agency/courthouse popups on WiGLE map ([24f372d](https://github.com/cyclonite69/shadowcheck-web/commit/24f372dba6b8cd897403f0a77fef1ae977b119ed))
-- **geospatial:** establish WiGLE layer parity and extract map appearance hooks ([af0a8ce](https://github.com/cyclonite69/shadowcheck-web/commit/af0a8ced49edd53d28cc90baa9348255ac7943f6))
+- **geospatial:** establish WiGLE layer parity and extract map appearance hooks ([d8216a3](https://github.com/cyclonite69/shadowcheck-web/commit/d8216a3fb274a13dc336700f66053ffedf9663a6))
 - **geospatial:** expose activity metrics in explorer columns ([a8a8465](https://github.com/cyclonite69/shadowcheck-web/commit/a8a8465166bec321add39b0f48404123b208cb3c))
 - **geospatial:** persist visible sibling group indicators ([1edb27d](https://github.com/cyclonite69/shadowcheck-web/commit/1edb27dc3fbf560ee486932af0365fbc9d1f4bc6))
 - **geospatial:** pin-drop radius filter via right-click or crosshair button ([5103cf0](https://github.com/cyclonite69/shadowcheck-web/commit/5103cf0fd1cbba978a4a08f10c5286c6809d112c))
@@ -1333,6 +1333,7 @@
 - **ingest:** migrate auto-process flag to app.settings and harden Nginx ingest routes ([6104fcd](https://github.com/cyclonite69/shadowcheck-web/commit/6104fcd2ee1fd2ecfeded31a6170571bdc0f91da))
 - **ingest:** replace auto-process with manual kick pattern and Run button ([9058329](https://github.com/cyclonite69/shadowcheck-web/commit/90583297a1700d243e8965bb35f3bf672fd99c98))
 - **kepler/wigle:** match Kepler header to WiGLE pattern, anchor panels to right ([4bce383](https://github.com/cyclonite69/shadowcheck-web/commit/4bce383ff0a4c12a43a976e559f1c8dcfe25ed33))
+- **kepler:** add Arrow streaming endpoint and filter support ([078ca1b](https://github.com/cyclonite69/shadowcheck-web/commit/078ca1b972187b50cbba551de5a23b543fc57649))
 - **kepler:** enrich observation tooltip payloads ([c1a9db0](https://github.com/cyclonite69/shadowcheck-web/commit/c1a9db0cc189e4f4be2e53b2591d1b92814f96b4))
 - **kepler:** green point color for icon layer, zoom in/out control top-right ([17f7780](https://github.com/cyclonite69/shadowcheck-web/commit/17f778033711ac57145705218bc00b8767e958b8))
 - **kepler:** hide side panel on load + auto-fit viewport to data ([3b576ec](https://github.com/cyclonite69/shadowcheck-web/commit/3b576ecf6a8a04f8e116416d5e283384b2b38a1f))

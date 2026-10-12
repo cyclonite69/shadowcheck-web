@@ -39,11 +39,7 @@ export interface Filters {
   securityFlags?: string[];
   timeframe?: Timeframe;
   temporalScope?:
-    | 'observation_time'
-    | 'network_lifetime'
-    | 'threat_window'
-    | 'first_seen'
-    | 'last_seen';
+    'observation_time' | 'network_lifetime' | 'threat_window' | 'first_seen' | 'last_seen';
   observationCountMin?: number;
   observationCountMax?: number;
   has_notes?: boolean;
@@ -153,6 +149,7 @@ export interface GeospatialOptions {
   offset?: number;
   selectedBssids?: string[];
   locationMode?: 'latest_observation' | 'centroid' | 'weighted_centroid';
+  includeObservationMetadata?: boolean;
 }
 
 export interface AnalyticsOptions {

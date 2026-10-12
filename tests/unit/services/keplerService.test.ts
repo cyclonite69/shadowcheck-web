@@ -1,5 +1,8 @@
 export {};
 
+const { tableFromIPC } = require('apache-arrow');
+const { PassThrough } = require('node:stream');
+
 const mockClient = {
   query: jest.fn(),
   release: jest.fn(),
@@ -34,6 +37,7 @@ const {
   getKeplerData,
   getKeplerObservations,
   streamKeplerObservations,
+  streamKeplerObservationsArrow,
   getKeplerNetworks,
 } = keplerService;
 const { query, pool } = require('../../../server/src/config/database') as any;
@@ -329,6 +333,124 @@ describe('Kepler Service', () => {
         expect.objectContaining({ error: dbErr })
       );
       expect(mockRes.destroy).toHaveBeenCalledWith(dbErr);
+    });
+  });
+
+  describe('streamKeplerObservationsArrow', () => {
+    it('streams typed Arrow record batches from the cursor', async () => {
+      (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: [] });
+      mockClient.query
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({
+          rows: Array.from({ length: 25000 }, (_, index) => ({
+            id: '42',
+            lon: '-83.7',
+            lat: '43.0',
+            level: '-61',
+            observed_at_ms: '1700000000000',
+            bssid: '00:11:22:33:44:55',
+            ssid: `ArrowNet ${index}`,
+          })),
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'not-an-integer',
+              lon: 'invalid',
+              lat: null,
+              level: 'invalid',
+              observed_at_ms: 'invalid',
+              bssid: null,
+              ssid: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({});
+
+      const response = new PassThrough() as any;
+      response.headersSent = false;
+      response.writeHead = jest.fn(function (this: any, status: number) {
+        this.statusCode = status;
+        this.headersSent = true;
+      });
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      const responseEnded = new Promise<void>((resolve) => response.once('end', resolve));
+
+      await streamKeplerObservationsArrow({}, {}, null, response);
+      await responseEnded;
+
+      expect(response.writeHead).toHaveBeenCalledWith(200, {
+        'Content-Type': 'application/vnd.apache.arrow.stream',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
+      });
+      const table = tableFromIPC(Buffer.concat(chunks));
+      expect(table.numRows).toBe(25001);
+      expect(table.batches).toHaveLength(2);
+      expect(table.getChild('id')?.get(0)).toBe(42n);
+      expect(table.getChild('lon')?.get(0)).toBe(-83.7);
+      expect(table.getChild('level')?.get(0)).toBe(-61);
+      expect(table.getChild('observed_at_ms')?.get(0)).toBe(1700000000000n);
+      expect(table.getChild('ssid')?.get(0)).toBe('ArrowNet 0');
+      expect(table.getChild('id')?.get(25000)).toBeNull();
+      expect(table.getChild('lon')?.get(25000)).toBe(0);
+      expect(table.getChild('lat')?.get(25000)).toBe(0);
+      expect(table.getChild('level')?.get(25000)).toBe(-100);
+      expect(table.getChild('observed_at_ms')?.get(25000)).toBe(0n);
+      expect(table.getChild('bssid')?.get(25000)).toBe('');
+      expect(table.getChild('ssid')?.get(25000)).toBe('');
+      expect(mockClient.query).toHaveBeenNthCalledWith(4, 'FETCH 25000 FROM kepler_cur');
+      expect(mockClient.query).toHaveBeenNthCalledWith(5, 'FETCH 25000 FROM kepler_cur');
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not start an Arrow response when filters are invalid', async () => {
+      (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: ['Invalid filter'] });
+      const response = { writeHead: jest.fn() };
+      await expect(streamKeplerObservationsArrow({}, {}, null, response)).rejects.toMatchObject({
+        status: 400,
+        errors: ['Invalid filter'],
+      });
+      expect(response.writeHead).not.toHaveBeenCalled();
+    });
+
+    it('emits a typed empty Arrow stream when no observations match', async () => {
+      (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: [] });
+      mockClient.query
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({});
+
+      const response = new PassThrough() as any;
+      response.headersSent = false;
+      response.writeHead = jest.fn(function (this: any) {
+        this.headersSent = true;
+      });
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      const responseEnded = new Promise<void>((resolve) => response.once('end', resolve));
+
+      await streamKeplerObservationsArrow({}, {}, null, response);
+      await responseEnded;
+
+      const table = tableFromIPC(Buffer.concat(chunks));
+      expect(table.numRows).toBe(0);
+      expect(table.schema.fields.map((field: any) => field.name)).toEqual([
+        'id',
+        'lon',
+        'lat',
+        'level',
+        'observed_at_ms',
+        'bssid',
+        'ssid',
+      ]);
     });
   });
 

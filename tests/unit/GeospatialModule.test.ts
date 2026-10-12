@@ -32,6 +32,20 @@ describe('GeospatialModule', () => {
     });
   });
 
+  it('requests observation metadata only when enabled', () => {
+    const getFilteredObservationsCte = jest
+      .fn()
+      .mockReturnValue({ cte: 'CTE_MOCK', bssidFilter: 'BSSID_MOCK' });
+    const module = new GeospatialModule(ctx, getFilteredObservationsCte);
+
+    module.buildGeospatialQuery({ includeObservationMetadata: true });
+
+    expect(getFilteredObservationsCte).toHaveBeenCalledWith({
+      selectedBssids: [],
+      includeObservationMetadata: true,
+    });
+  });
+
   it('buildGeospatialCountQuery generates a count query', () => {
     const getFilteredObservationsCte = jest
       .fn()
