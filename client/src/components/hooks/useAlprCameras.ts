@@ -33,7 +33,7 @@ function escapeHtml(value: string): string {
   );
 }
 
-function renderAlprPopupCard(
+export function renderAlprPopupCard(
   props: AlprCameraFeature['properties'],
   coordinates: AlprCameraFeature['geometry']['coordinates']
 ): string {

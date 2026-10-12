@@ -46,4 +46,22 @@ describe('Geospatial utilities', () => {
     expect(result).toContain('TestNet');
     expect(result).toContain('AA:BB:CC:DD:EE:FF');
   });
+
+  it('escapes MVT-derived text while preserving network tooltip markup', () => {
+    const {
+      renderNetworkTooltip,
+    } = require('../../client/src/utils/geospatial/renderNetworkTooltip');
+    const result = renderNetworkTooltip({
+      bssid: 'AA:BB:CC:DD:EE:FF" onmouseover="alert(1)',
+      ssid: '<img src=x onerror=alert(1)> & "network"',
+      comment: "<script>alert('x')</script>",
+      type: 'W',
+    });
+
+    expect(result).toContain('&lt;img src=x onerror=alert(1)&gt; &amp; &quot;network&quot;');
+    expect(result).toContain('&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;');
+    expect(result).not.toContain('<img src=x');
+    expect(result).not.toContain('<script>');
+    expect(result).toContain('<div style=');
+  });
 });

@@ -24,7 +24,6 @@ const DEFAULT_VISIBILITY: LayerVisibility = {
   agencyMatches: false,
   courthouses: false,
   alpr: false,
-  deflock: false,
   shotspotterZones: false,
   shotspotterSensors: false,
 };
@@ -38,7 +37,6 @@ const DEFAULT_OPACITY: LayerOpacity = {
   agencyMatches: 1,
   courthouses: 1,
   alpr: 1,
-  deflock: 1,
   shotspotterZones: 1,
   shotspotterSensors: 1,
 };

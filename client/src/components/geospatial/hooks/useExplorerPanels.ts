@@ -49,7 +49,6 @@ export const useExplorerPanels = () => {
     showWigleKml: visibility.wigleKml,
     showFieldObservations: visibility.fieldObservations,
     showAgencyOffices: visibility.agencies,
-    showDeflockCameras: visibility.deflock,
     showShotspotterZones: visibility.shotspotterZones,
     showShotspotterSensors: visibility.shotspotterSensors,
     mapLayerOptions,
@@ -65,7 +64,6 @@ export const useExplorerPanels = () => {
     toggleWigleKml: () => toggleLayer('wigleKml'),
     toggleFieldObservations: () => toggleLayer('fieldObservations'),
     toggleAgencyOffices: () => toggleLayer('agencies'),
-    toggleDeflockCameras: () => toggleLayer('deflock'),
     toggleShotspotterZones: () => toggleLayer('shotspotterZones'),
     toggleShotspotterSensors: () => toggleLayer('shotspotterSensors'),
   };

@@ -1,30 +1,14 @@
 export const GEOSPATIAL_LAYER_IDS = {
-  wigleV2: ['wigle-v2-clusters', 'wigle-v2-cluster-count', 'wigle-v2-unclustered'],
-  wigleV3: ['wigle-v3-clusters', 'wigle-v3-cluster-count', 'wigle-v3-unclustered'],
-  wigleKml: ['wigle-kml-clusters', 'wigle-kml-cluster-count', 'wigle-kml-unclustered'],
-  fieldObservations: [
-    'wigle-field-clusters',
-    'wigle-field-cluster-count',
-    'wigle-field-unclustered',
-  ],
-  agencies: [
-    'agency-clusters',
-    'agency-cluster-count',
-    'agency-field-unclustered',
-    'agency-resident-unclustered',
-  ],
+  wigleV2: ['geospatial-wigle-v2-mvt-points'],
+  wigleV3: ['geospatial-wigle-v3-mvt-points'],
+  wigleKml: ['geospatial-kml-mvt-points'],
+  fieldObservations: ['geospatial-field-mvt-points'],
+  agencies: ['geospatial-agencies-mvt-points'],
   agencyMatches: ['nearest-agencies-layer'],
-  courthouses: [
-    'courthouse-clusters',
-    'courthouse-cluster-count',
-    'courthouse-district',
-    'courthouse-circuit',
-    'courthouse-specialty',
-  ],
-  alpr: ['alpr-clusters', 'alpr-cluster-count', 'alpr-unclustered'],
-  deflock: ['deflock-clusters', 'deflock-cluster-count', 'deflock-unclustered'],
-  shotspotterZones: ['shotspotter-fill', 'shotspotter-outline'],
-  shotspotterSensors: ['shotspotter-sensors-points'],
+  courthouses: ['geospatial-courthouses-mvt-points'],
+  alpr: ['geospatial-alpr-mvt-points'],
+  shotspotterZones: ['geospatial-shotspotter-zone-fill', 'geospatial-shotspotter-zone-line'],
+  shotspotterSensors: ['geospatial-shotspotter-sensor-points'],
 } as const;
 
 export type GeospatialLayerControlKey = keyof typeof GEOSPATIAL_LAYER_IDS;
@@ -50,7 +34,6 @@ export const GEOSPATIAL_LAYER_LABELS: Record<GeospatialLayerControlKey, string> 
   agencyMatches: 'Nearest agencies',
   courthouses: 'Federal courthouses',
   alpr: 'ALPR cameras (OSM)',
-  deflock: 'DeFlock cameras',
   shotspotterZones: 'ShotSpotter zones',
   shotspotterSensors: 'ShotSpotter sensors',
 };
@@ -58,15 +41,14 @@ export const GEOSPATIAL_LAYER_LABELS: Record<GeospatialLayerControlKey, string> 
 export const GEOSPATIAL_LAYER_COLORS: Record<GeospatialLayerControlKey, string> = {
   wigleV2: '#3b82f6',
   wigleV3: '#8b5cf6',
-  wigleKml: '#f97316',
+  wigleKml: '#eab308',
   fieldObservations: '#06b6d4',
-  agencies: '#22c55e',
+  agencies: '#dc2626',
   agencyMatches: '#22c55e',
-  courthouses: '#f59e0b',
+  courthouses: '#6366f1',
   alpr: '#d946ef',
-  deflock: '#ff6b00',
-  shotspotterZones: '#cc0000',
-  shotspotterSensors: '#8b0000',
+  shotspotterZones: '#7f1d1d',
+  shotspotterSensors: '#fb7185',
 };
 
 export const DEFAULT_GEOSPATIAL_LAYER_ORDER: GeospatialLayerControlKey[] = [
@@ -77,7 +59,6 @@ export const DEFAULT_GEOSPATIAL_LAYER_ORDER: GeospatialLayerControlKey[] = [
   'agencies',
   'agencyMatches',
   'courthouses',
-  'deflock',
   'alpr',
   'shotspotterZones',
   'shotspotterSensors',

@@ -35,6 +35,8 @@ describe('useExplorerPanels hook', () => {
     expect(result.showAgenciesPanel).toBe(false);
     expect(result.showCourthousesPanel).toBe(false);
     expect(result.showAlprCameras).toBe(false);
+    expect(result).not.toHaveProperty('showDeflockCameras');
+    expect(result).not.toHaveProperty('toggleDeflockCameras');
   });
 
   it('toggles showAlprCameras on and off', () => {

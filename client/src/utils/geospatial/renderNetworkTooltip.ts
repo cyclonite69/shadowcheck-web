@@ -22,7 +22,24 @@ import {
  * High-fidelity forensic design with data density and visual alerts.
  */
 
-const EM_DASH = '&mdash;';
+const EM_DASH = '—';
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      default:
+        return '&#39;';
+    }
+  });
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -97,20 +114,20 @@ function statBar(fillPct: number, color: string): string {
 
 function statsCell(label: string, valueText: string, fillPct: number, color: string, borders = '') {
   return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:8px 6px 6px;min-width:0;${borders}">
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:3px;white-space:nowrap;">${label}</div>
-    <div style="font-size:15px;font-weight:600;color:#fff;line-height:1;margin-bottom:4px;white-space:nowrap;">${valueText}</div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:3px;white-space:nowrap;">${escapeHtml(label)}</div>
+    <div style="font-size:15px;font-weight:600;color:#fff;line-height:1;margin-bottom:4px;white-space:nowrap;">${escapeHtml(valueText)}</div>
     ${statBar(fillPct, color)}
   </div>`;
 }
 
 function fieldRow(label: string, value: string, title?: string, allowWrap?: boolean): string {
-  const titleAttr = title ? `title="${title}"` : '';
+  const titleAttr = title ? `title="${escapeHtml(title)}"` : '';
   const valueStyle = allowWrap
     ? 'font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:normal;word-break:break-word;line-height:1.3;'
     : 'font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
   return `<div ${titleAttr} style="display:grid;grid-template-columns:130px 1fr;align-items:${allowWrap ? 'flex-start' : 'center'};min-height:26px;padding:3px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;padding-top:${allowWrap ? '3px' : '0px'};">${label}</div>
-    <div style="${valueStyle}">${value}</div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;padding-top:${allowWrap ? '3px' : '0px'};">${escapeHtml(label)}</div>
+    <div style="${valueStyle}">${escapeHtml(value)}</div>
   </div>`;
 }
 
@@ -177,8 +194,8 @@ function formatThreatFactors(factors: any): string {
 
   const rows = Object.entries(factors)
     .map(([key, value]) => {
-      const label = key.replace(/_/g, ' ').toUpperCase();
-      const val = typeof value === 'number' ? value.toFixed(1) : String(value);
+      const label = escapeHtml(key.replace(/_/g, ' ').toUpperCase());
+      const val = escapeHtml(typeof value === 'number' ? value.toFixed(1) : String(value));
       return `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
         <span style="color:rgba(255,255,255,0.3);font-size:8px;letter-spacing:0.05em;">${label}</span>
         <span style="color:rgba(255,255,255,0.7);font-size:9px;font-family:monospace;">${val}</span>
@@ -480,7 +497,7 @@ export const renderNetworkTooltip = (props: any): any => {
   let evidenceHtml = '';
   if (Number.isFinite(evidenceCount) && evidenceCount > 0) {
     const mediaIds = Array.isArray(props.media_ids) ? props.media_ids : [];
-    const displayedIds = mediaIds.slice(0, 3);
+    const displayedIds = mediaIds.slice(0, 3).map((id: unknown) => encodeURIComponent(String(id)));
     const remainingCount = mediaIds.length - displayedIds.length;
 
     const imgElements = displayedIds
@@ -522,13 +539,13 @@ export const renderNetworkTooltip = (props: any): any => {
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:6px;">
         <div style="flex-shrink:0;">${getRadioTypeIcon(displayRadioType, bc)}</div>
-        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ssid)}</div>
       </div>
     </div>
-    ${hasThreatScore ? `<div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>` : ''}
+    ${hasThreatScore ? `<div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${escapeHtml(threat)}</div>` : ''}
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
-    <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
+    <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${escapeHtml(bssid)}</div>
   </div>
 
   ${
@@ -580,11 +597,11 @@ export const renderNetworkTooltip = (props: any): any => {
   ${
     displayAddress || locationText
       ? `<div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
-  ${displayAddress ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${String(displayAddress)}">${String(displayAddress)}</div>` : ''}
-  ${!displayAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${locationText}">${locationText}</div>` : ''}`
+  ${displayAddress ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(displayAddress)}">${escapeHtml(displayAddress)}</div>` : ''}
+  ${!displayAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(locationText)}">${escapeHtml(locationText)}</div>` : ''}`
       : ''
   }
-  ${hasCoords ? `<div title="${displayAddress ? `${displayAddress} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `Location coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}</div>` : ''}
+  ${hasCoords ? `<div title="${escapeHtml(displayAddress ? `${displayAddress} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `Location coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`)}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${escapeHtml(formatCoord(Number(lat), 5))}, ${escapeHtml(formatCoord(Number(lon), 5))}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
@@ -606,7 +623,7 @@ export const renderNetworkTooltip = (props: any): any => {
           !isMissingValue(props.first_seen)
             ? `<div style="text-align:center;">
           <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">First</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.first_seen)}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${escapeHtml(formatDateTime(props.first_seen))}</div>
         </div>`
             : ''
         }
@@ -614,13 +631,13 @@ export const renderNetworkTooltip = (props: any): any => {
           !isMissingValue(props.last_seen)
             ? `<div style="text-align:center;">
           <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">Last</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.last_seen)}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${escapeHtml(formatDateTime(props.last_seen))}</div>
         </div>`
             : ''
         }
         <div ${!isMissingValue(props.time) ? 'style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"' : 'style="text-align:center;"'}>
           <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.3)'};font-weight:${!isMissingValue(props.time) ? '600' : '400'};margin-bottom:2px;">Seen</div>
-          <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? formatDateTime(props.time) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)}</span>` : ''}</div>
+          <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? escapeHtml(formatDateTime(props.time)) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${escapeHtml(normalizeDisplay(props.time_since_prior))}</span>` : ''}</div>
         </div>
       </div>
     </div>
@@ -630,7 +647,7 @@ export const renderNetworkTooltip = (props: any): any => {
 
   ${
     !isMissingValue(props.notes)
-      ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${normalizeDisplay(props.notes)}</div>`
+      ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${escapeHtml(normalizeDisplay(props.notes))}</div>`
       : ''
   }
 
@@ -639,7 +656,7 @@ export const renderNetworkTooltip = (props: any): any => {
   ${
     showVendorIntel && surveillanceType
       ? `<button
-          data-vendor-intel="${surveillanceType}"
+          data-vendor-intel="${escapeHtml(surveillanceType)}"
           style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;background:rgba(220,38,38,0.08);border:0;border-top:1px solid rgba(220,38,38,0.2);border-radius:0 0 8px 8px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;"
           onmouseover="this.style.background='rgba(220,38,38,0.15)'"
           onmouseout="this.style.background='rgba(220,38,38,0.08)'"

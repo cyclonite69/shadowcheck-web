@@ -44,12 +44,9 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useNearestAgencies');
     expect(source).toContain('useNearestCourthouses');
     expect(source).toContain('useAgencyLayer');
-    expect(source).toContain('useFederalCourthouses');
-    expect(source).toContain('useAlprCameras');
-    expect(source).toContain('useDeflockCameras');
-    expect(source).toContain('useShotspotterZones');
-    expect(source).toContain('useShotspotterSensors');
     expect(source).toContain('useGeospatialWigleResultLayers');
+    expect(source).toContain('shotspotterZones: state.showShotspotterZones');
+    expect(source).toContain('shotspotterSensors: state.showShotspotterSensors');
     expect(source).toContain('useMapLayerAppearance');
     expect(source).toContain("from './geospatial/layers/useGeospatialWigleResultLayers'");
   });
@@ -90,8 +87,7 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useNearestCourthouses(');
     expect(source).toContain('useGeospatialOverlayOrchestration({');
     expect(source).toContain('useAgencyLayer({');
-    expect(source).toContain('useFederalCourthouses(');
-    expect(source).toContain('useAlprCameras(');
+    expect(source).toContain('useGeospatialWigleResultLayers({');
     expect(source).toContain('<GeospatialOverlayContent');
     expect(source).toContain('<MapRadiusContextMenu');
   });
@@ -104,5 +100,10 @@ describe('GeospatialExplorer component structure', () => {
       'const [showNetworkSummaries, setShowNetworkSummaries] = useState(false)'
     );
     expect(source).toContain('const [showMediaLocations, setShowMediaLocations] = useState(false)');
+  });
+
+  test('does not wire DeFlock into Geospatial Explorer layer state', () => {
+    expect(source).not.toContain('deflock: state.showDeflockCameras');
+    expect(mapContentSource).not.toContain('showDeflockCameras');
   });
 });
