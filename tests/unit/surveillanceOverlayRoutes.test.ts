@@ -82,7 +82,7 @@ describe.each(routeCases)('$name route', ({ module, service, error }) => {
     service.mockResolvedValueOnce(geojson);
     const res = createRes();
 
-    await getHandler(module)({}, res);
+    await getHandler(module)({ query: {} }, res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual(geojson);
@@ -93,7 +93,7 @@ describe.each(routeCases)('$name route', ({ module, service, error }) => {
     service.mockRejectedValueOnce(new Error('unavailable'));
     const res = createRes();
 
-    await getHandler(module)({}, res);
+    await getHandler(module)({ query: {} }, res);
 
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ ok: false, error });
