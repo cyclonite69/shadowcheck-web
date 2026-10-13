@@ -277,13 +277,13 @@ Before starting work, understand the subsystem layouts and workflow guides:
   `scripts/check-modularity.js` output, add a scheduled GitHub Actions run,
   alert on threshold breach, and supersede ad-hoc agent-generated audit files.
 
-### Geospatial Layer Rework Follow-ups (2026-10-12)
+### Geospatial Layer Rework Follow-ups (2026-10-13)
 
 - **training_facility**: The FBI Academy (`agency_offices.office_type = 'training_facility'`, 1 row) is counted inside the single `agency-offices` GeoJSON source clusters but has no unclustered circle layer, so it vanishes at high zoom. Inherited from the WiGLE code; unchanged.
 - **Shared agency cluster layer**: `agency-clusters` and `agency-cluster-count` are one pair for both office types, colored the Field Office red, with an existing TODO in `useAgencyOffices.ts` to split by type. In the geospatial Layers menu they belong to the Field Offices entry, so its opacity and order controls also affect resident clusters, and with only Resident Agencies on the clusters render red.
 - **Dead-but-applied server surface**: `fn_get_agency_offices_tile` (_130, superseded by _160) and `fn_get_courthouses_tile` (_130), their tile route cases and repository constants. Applied in prod, unused by both pages. Decide later whether to retire.
 - **Legacy panel prop contract**: The `showCourthousesPanel` name is retained across the client for prop-contract compatibility; it maps to `visibility.courthouses`.
-- **Untracked migration**: Tracked migration `20261008_108_note_media_db_only_hard_delete.sql` is not recorded in prod's `app.schema_migrations` or in `shadowcheck_test`.
+- **Unapplied tracked migration**: Tracked migration `20261008_108_note_media_db_only_hard_delete.sql` is not recorded in prod's `app.schema_migrations` or in `shadowcheck_test`.
 - **Residual formatting differences**: The C4 normalization proof (`eslint --fix` and prettier on both trees) left about 23 files differing; the claim "100% formatting" was never convergently proven.
 
 ---
