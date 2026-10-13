@@ -390,6 +390,24 @@ Full suite after all merges: **531/531 suites, 5020/5020 tests, 0 failures**
 
 ---
 
+## Dependency Merge Ledger — 2026-10-13
+
+| Package                         | From     | To       | Source Branch                                                     | PR   | Status      | Validation              | Notes                                                                               |
+| ------------------------------- | -------- | -------- | ----------------------------------------------------------------- | ---- | ----------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| docker/node                     | —        | 26.11.1  | `dependabot/docker/node-26.11.1-alpine`                           | #418 | Merged      | operator merged on GH   | Dockerfile base image update                                                        |
+| typescript                      | 6.0.3    | 7.0.2    | `dependabot/npm_and_yarn/typescript-7.0.2`                        | #419 | Merged      | tsc ✓ lint ✓            | Merged on GH by operator                                                            |
+| @types/node                     | 25.9.3   | 26.6.5   | `dependabot/npm_and_yarn/types/node-26.6.5`                       | #420 | Merged      | tsc ✓ lint ✓            | Merged on GH by operator                                                            |
+| @aws-sdk/client-secrets-manager | 3.1085.0 | 3.1149.0 | `dependabot/npm_and_yarn/aws-sdk/client-secrets-manager-3.1149.0` | #421 | Merged      | tsc ✓ lint ✓            | Merged on GH by operator                                                            |
+| helmet                          | 8.2.0    | 8.3.0    | `dependabot/npm_and_yarn/helmet-8.3.0`                            | #422 | Merged      | tsc ✓ lint ✓            | Merged on GH by operator                                                            |
+| dotenv                          | 17.4.2   | 18.0.7   | `dependabot/npm_and_yarn/dotenv-18.0.7`                           | #426 | Merged      | tsc ✓ lint ✓            | Merged on GH by operator                                                            |
+| @aws-sdk/client-s3              | 3.1085.0 | 3.1149.0 | `dependabot/npm_and_yarn/aws-sdk/client-s3-3.1149.0`              | #424 | Merged      | tsc ✓ lint ✓ 25 tests ✓ | Clean merge, mobile ingest tests pass                                               |
+| @aws-sdk/client-sts             | 3.1085.0 | 3.1149.0 | `dependabot/npm_and_yarn/aws-sdk/client-sts-3.1149.0`             | #427 | Merged      | tsc ✓ lint ✓ 22 tests ✓ | Kept all 3 AWS SDK packages aligned at 3.1149.0; adminAws & mobileIngest tests pass |
+| redis                           | 6.0.0    | 6.3.0    | `dependabot/npm_and_yarn/redis-6.3.0`                             | #425 | Merged      | tsc ✓ lint ✓ 16 tests ✓ | Clean merge, cacheService tests pass                                                |
+| handlebars (security-updates)   | 4.7.9    | 4.7.10   | `dependabot/npm_and_yarn/security-updates-c6d5a854cf`             | #428 | Merged      | tsc ✓ lint ✓            | Indirect dev dependency, lockfile update only                                       |
+| development-dependencies bundle | —        | —        | `dependabot/npm_and_yarn/development-dependencies-b561ce3d1d`     | #423 | **Skipped** | —                       | Policy: never merge dev-dep bundles after individual PRs merged                     |
+
+---
+
 ## Deferred TODO — 2026-09-10
 
 **ESLint has no configuration covering `tests/`.**
