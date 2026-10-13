@@ -297,7 +297,37 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req: Request, res: Res
 });
 
 const { requireAuth } = require('../../../middleware/authMiddleware');
+const { getLayerCounts } = require('../../../services/layerCountsService');
 const geospatialTileRoutes = require('./geospatial/tiles').default;
+
+/**
+ * GET /api/geospatial/layer-counts
+ * Retrieves authoritative total dataset counts for all 11 Geospatial Explorer layers.
+ * Utilizes 15-minute caching and single-flight deduplication.
+ *
+ * @param {import('express').Request} _req - Express request
+ * @param {import('express').Response} res - Express response
+ */
+router.get('/api/geospatial/layer-counts', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const result = await getLayerCounts();
+    return res.json({
+      success: true,
+      timestamp: result.timestamp,
+      cached: result.cached,
+      counts: result.counts,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[Geospatial] Error fetching layer counts: ${msg}`, { error: err });
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch geospatial layer counts',
+      details: msg,
+    });
+  }
+});
+
 router.use('/api/geospatial/tiles', requireAuth, geospatialTileRoutes);
 
 module.exports = router;

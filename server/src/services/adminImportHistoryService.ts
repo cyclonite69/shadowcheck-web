@@ -3,6 +3,7 @@ export {};
 const { adminQuery } = require('./adminDbService');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
+const { invalidateLayerCountsCache } = require('./layerCountsService');
 
 /**
  * Counts key tables for before/after import metrics snapshots.
@@ -100,6 +101,12 @@ export async function completeImportSuccess(
      WHERE id = $1`,
     [historyId, imported, failed, durationS, JSON.stringify(metricsAfter), status]
   );
+
+  try {
+    await invalidateLayerCountsCache();
+  } catch (err) {
+    logger.warn('[adminImportHistoryService] Failed to invalidate layer counts cache:', err);
+  }
 }
 
 /**

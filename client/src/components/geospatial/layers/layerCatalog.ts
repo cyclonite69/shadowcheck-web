@@ -41,7 +41,7 @@ export interface GeospatialLayerOption {
 export const GEOSPATIAL_LAYER_LABELS: Record<GeospatialLayerControlKey, string> = {
   home: 'Home marker',
   wigleV2: 'WiGLE v2 networks',
-  wigleV3: 'WiGLE v3 networks',
+  wigleV3: 'WiGLE v3 observations',
   wigleKml: 'KML observations',
   fieldObservations: 'Field observations',
   fieldOffices: FIELD_OFFICE_LABEL,

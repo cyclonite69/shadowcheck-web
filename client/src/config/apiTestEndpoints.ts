@@ -324,6 +324,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     ],
   },
   {
+    category: 'Geospatial',
+    label: 'Geospatial Layer Counts',
+    description: 'Authoritative total dataset counts for all 11 Geospatial Explorer layers',
+    path: '/api/geospatial/layer-counts',
+    method: 'GET',
+    requiresAuth: true,
+  },
+  {
     category: 'Surveillance',
     label: 'ShotSpotter Zones',
     description:

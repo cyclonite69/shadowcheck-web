@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronDownIcon, CheckIcon } from './MapToolbarIcons';
 import type { GeospatialLayerOption } from '../layers/layerCatalog';
+import { useGeospatialLayerCounts } from '../hooks/useGeospatialLayerCounts';
 
 interface LayersDropdownProps {
   layersOpen: boolean;
@@ -31,6 +32,8 @@ export const LayersDropdown = ({
   showAlprCameras,
   layerOptions,
 }: LayersDropdownProps) => {
+  const { counts: layerCounts } = useGeospatialLayerCounts();
+
   if (
     !layerOptions?.length &&
     !onToggleAgenciesPanel &&
@@ -70,12 +73,33 @@ export const LayersDropdown = ({
             border: '0.5px solid rgba(59,130,246,0.15)',
             borderRadius: '8px',
             padding: '4px',
-            minWidth: '230px',
+            minWidth: '290px',
             maxHeight: 'min(70vh, 560px)',
             overflowY: 'auto',
             zIndex: 200,
           }}
         >
+          {layerOptions && layerOptions.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px 8px 6px',
+                borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+                marginBottom: '4px',
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: '10px',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                ...mono,
+              }}
+            >
+              <span style={{ flex: 1 }}>LAYER</span>
+              <span style={{ minWidth: '60px', textAlign: 'right', paddingRight: '56px' }}>
+                COUNT
+              </span>
+            </div>
+          )}
           {layerOptions?.map((option) => (
             <div
               key={option.key}
@@ -94,7 +118,7 @@ export const LayersDropdown = ({
                     minWidth: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    gap: '8px',
                     padding: '3px 2px',
                     border: 0,
                     background: 'transparent',
@@ -105,8 +129,44 @@ export const LayersDropdown = ({
                     cursor: 'pointer',
                   }}
                 >
-                  <span>{option.label}</span>
-                  {option.visible && <CheckIcon color={option.color} />}
+                  <span
+                    style={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                  <span
+                    title={
+                      option.key === 'wigleV3' && layerCounts[option.key] !== null
+                        ? `${layerCounts[option.key]?.toLocaleString()} observation pings (5,606 unique networks)`
+                        : undefined
+                    }
+                    style={{
+                      fontSize: '11px',
+                      color: option.visible ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)',
+                      textAlign: 'right',
+                      minWidth: '54px',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {layerCounts[option.key] !== null
+                      ? layerCounts[option.key]?.toLocaleString()
+                      : '—'}
+                  </span>
+                  <span
+                    style={{
+                      width: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {option.visible && <CheckIcon color={option.color} />}
+                  </span>
                 </button>
                 <button
                   type="button"
