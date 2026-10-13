@@ -140,9 +140,9 @@ describe('Stale persisted key regression test (agencyMatches)', () => {
     expect(preferences.opacity).not.toHaveProperty('agencies');
     expect(preferences.order).not.toContain('agencies');
 
-    // New keys must default to WiGLE defaults (true)
-    expect((preferences.visibility as any).fieldOffices).toBe(true);
-    expect((preferences.visibility as any).residentAgencies).toBe(true);
+    // New keys must default to geospatial defaults (false)
+    expect((preferences.visibility as any).fieldOffices).toBe(false);
+    expect((preferences.visibility as any).residentAgencies).toBe(false);
     expect((preferences.visibility as any).courthouses).toBe(true);
 
     // agencies must not be present in layerCatalog ID mapping

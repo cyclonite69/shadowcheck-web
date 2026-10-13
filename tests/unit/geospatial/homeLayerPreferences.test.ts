@@ -98,9 +98,9 @@ describe('Home marker in geospatial Layers menu', () => {
       expect((visibility as any).home).toBe(true);
       expect((opacity as any).home).toBe(1);
       expect(visibility.wigleV2).toBe(false);
-      expect(visibility.fieldOffices).toBe(true);
-      expect(visibility.residentAgencies).toBe(true);
-      expect(visibility.courthouses).toBe(true);
+      expect(visibility.fieldOffices).toBe(false);
+      expect(visibility.residentAgencies).toBe(false);
+      expect(visibility.courthouses).toBe(false);
     });
 
     it('toggles home visibility and persists to localStorage', () => {
