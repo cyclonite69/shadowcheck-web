@@ -50,6 +50,44 @@ describe('scoreSurveillanceCandidates', () => {
     expect(results.map((result) => result.bssid)).toEqual(['AA:BB:CC:DD:EE:02']);
   });
 
+  test('allows canonical Flock-[hex6] and exact test_flck WiFi candidates while excluding uppercase TEST_FLCK and generic OUIs', () => {
+    const canonicalWifi = makeRow({
+      bssid: 'AA:BB:CC:DD:EE:01',
+      ssid: 'Flock-4B5C6D',
+      type: 'W',
+    });
+    const testFlckWifi = makeRow({
+      bssid: 'AA:BB:CC:DD:EE:02',
+      ssid: 'test_flck',
+      type: 'W',
+    });
+    const uppercaseTestFlckWifi = makeRow({
+      bssid: 'AA:BB:CC:DD:EE:05',
+      ssid: 'TEST_FLCK',
+      type: 'W',
+    });
+    const genericOuiWifi = makeRow({
+      bssid: 'AA:BB:CC:DD:EE:03',
+      ssid: 'Flock_Office_Guest',
+      type: 'W',
+    });
+    const nullSsidWifi = makeRow({
+      bssid: 'AA:BB:CC:DD:EE:04',
+      ssid: null,
+      type: 'W',
+    });
+
+    const results = scoreSurveillanceCandidates([
+      canonicalWifi,
+      testFlckWifi,
+      uppercaseTestFlckWifi,
+      genericOuiWifi,
+      nullSsidWifi,
+    ]);
+
+    expect(results.map((r) => r.bssid).sort()).toEqual(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
+  });
+
   test('produces one result per unique bssid', () => {
     const rows = [
       makeRow({ bssid: 'AA:BB:CC:DD:EE:01' }),
@@ -310,9 +348,7 @@ describe('scoreSurveillanceCandidates', () => {
 
     expect(result.device_type).toBe('RESIDENTIAL_CAMERA');
     expect(result.matched_signals.confidence_adjustments).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ factor: 'stationary_signature_penalty' }),
-      ])
+      expect.arrayContaining([expect.objectContaining({ factor: 'stationary_signature_penalty' })])
     );
   });
 

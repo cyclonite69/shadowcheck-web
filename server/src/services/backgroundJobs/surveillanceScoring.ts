@@ -121,7 +121,23 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
   const results: ScoredDetection[] = [];
 
   for (const [bssid, hits] of grouped) {
-    const best = hits[0]; // ordered by priority ASC, base_likelihood DESC
+    let best = hits[0]; // ordered by priority ASC, base_likelihood DESC
+
+    // Raven candidate precedence rule:
+    // Profile 1 (EXACT: 2+ custom UUIDs, base 90) overrides generic Tier 20 (RESIDENTIAL_CAMERA, base 72)
+    // and Tier 5 Xuntong default (FLOCK_SAFETY_CAMERA, base 80).
+    // Profile 2 (legacy pair, PARTIAL) and Profile 3 (1 custom UUID, PARTIAL) do not override Tier 20 or Tier 5.
+    // Unrelated candidates strictly preserve standard priority ordering.
+    const ravenHit = hits.find((h) => h.priority === 21);
+    if (ravenHit) {
+      const isOverridableTarget =
+        best.priority === 20 || (best.priority === 5 && best.device_type === 'FLOCK_SAFETY_CAMERA');
+
+      if (isOverridableTarget && ravenHit.match_quality === 'EXACT') {
+        best = ravenHit;
+      }
+    }
+
     const oui = bssid.substring(0, 8);
     const adjustments: ConfidenceAdjustment[] = [];
 
@@ -271,7 +287,12 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
     }
 
     if (best.type === 'W' && deviceType === 'FLOCK_SAFETY_CAMERA') {
-      continue;
+      const isCanonicalFlock =
+        Boolean(best.ssid) && /^Flock-[0-9A-Fa-f]{6}$/.test(best.ssid as string);
+      const isTestFlck = best.ssid === 'test_flck';
+      if (!isCanonicalFlock && !isTestFlck) {
+        continue;
+      }
     }
 
     results.push({

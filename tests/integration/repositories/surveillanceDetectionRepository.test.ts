@@ -28,6 +28,9 @@ describe('SurveillanceDetectionRepository Integration', () => {
       // In some test envs this might fail if AWS is totally blocked,
       // but we only need it to NOT throw if DB_PASSWORD is provided.
     }
+
+    // Guard: blocks all test execution if not connected to shadowcheck_test
+    await assertTestDb();
   });
 
   afterAll(async () => {
@@ -35,13 +38,28 @@ describe('SurveillanceDetectionRepository Integration', () => {
     await closePool();
   });
 
+  async function assertTestDb() {
+    const { rows } = await query('SELECT current_database() AS db');
+    if (rows[0].db !== 'shadowcheck_test') {
+      throw new Error(`Refusing: connected to ${rows[0].db}`);
+    }
+  }
+
   async function cleanup() {
+    await assertTestDb();
     const testBssids = [
       'B8:35:32:AA:BB:CC',
       'B8:35:32:00:00:01',
       'B8:35:32:FF:FF:FF',
       'TEST:AXON:01',
       'TEST:DEI:01',
+      'TEST:RAVEN:01',
+      'TEST:RAVEN:02',
+      'TEST:RAVEN:03',
+      'TEST:RAVEN:04',
+      'TEST:RAVEN:05',
+      'TEST:RAVEN:06',
+      'TEST:RAVEN:07',
     ];
     await query('DELETE FROM app.surveillance_detections WHERE bssid = ANY($1)', [testBssids]);
     await query('DELETE FROM app.observations WHERE bssid = ANY($1)', [testBssids]);
@@ -49,6 +67,7 @@ describe('SurveillanceDetectionRepository Integration', () => {
   }
 
   beforeEach(async () => {
+    await assertTestDb();
     await cleanup();
   });
 
@@ -128,6 +147,173 @@ describe('SurveillanceDetectionRepository Integration', () => {
     expect(match?.detection_method).toBe('ssid_pattern');
     expect(match?.matched_signals).toMatchObject({
       service_uuid: uuid,
+    });
+  });
+
+  describe('Tier 21: Raven Gunshot Detector BLE Service UUIDs', () => {
+    test('Profile 1: EXACT match with 2+ custom UUIDs, base likelihood 90, firmware 1.2.x', async () => {
+      const bssid = 'TEST:RAVEN:01';
+      const service = '00003100-0000-1000-8000-00805f9b34fb 00003200-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenSensor', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+
+      expect(match).toBeDefined();
+      expect(match?.device_type).toBe('RAVEN_GUNSHOT_DETECTOR');
+      expect(match?.base_likelihood).toBe(90);
+      expect(match?.match_quality).toBe('EXACT');
+      expect(match?.detection_method).toBe('uuid_match');
+      expect(match?.priority).toBe(21);
+      expect(match?.matched_signals).toMatchObject({
+        service,
+        matched_custom_uuid_count: 2,
+        matched_custom_uuids: [
+          '00003100-0000-1000-8000-00805f9b34fb',
+          '00003200-0000-1000-8000-00805f9b34fb',
+        ],
+        has_legacy_pair: false,
+        firmware_version: '1.2.x (inferred)',
+      });
+    });
+
+    test('Profile 2: PARTIAL match with legacy pair 0x1809 + 0x1819, base likelihood 60, firmware 1.1.x', async () => {
+      const bssid = 'TEST:RAVEN:02';
+      const service = '00001809-0000-1000-8000-00805f9b34fb 00001819-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenLegacy', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+
+      expect(match).toBeDefined();
+      expect(match?.device_type).toBe('RAVEN_GUNSHOT_DETECTOR');
+      expect(match?.base_likelihood).toBe(60);
+      expect(match?.match_quality).toBe('PARTIAL');
+      expect(match?.detection_method).toBe('uuid_match');
+      expect(match?.priority).toBe(21);
+      expect(match?.matched_signals).toMatchObject({
+        service,
+        matched_custom_uuid_count: 0,
+        matched_custom_uuids: [],
+        has_legacy_pair: true,
+        firmware_version: '1.1.x (legacy, inferred)',
+      });
+    });
+
+    test('Profile 3: PARTIAL match with 1 custom UUID, base likelihood 70, firmware 1.2.x+ partial', async () => {
+      const bssid = 'TEST:RAVEN:03';
+      const service = '00003100-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenPartial', 'B', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+
+      expect(match).toBeDefined();
+      expect(match?.device_type).toBe('RAVEN_GUNSHOT_DETECTOR');
+      expect(match?.base_likelihood).toBe(70);
+      expect(match?.match_quality).toBe('PARTIAL');
+      expect(match?.detection_method).toBe('uuid_match');
+      expect(match?.priority).toBe(21);
+      expect(match?.matched_signals).toMatchObject({
+        service,
+        matched_custom_uuid_count: 1,
+        matched_custom_uuids: ['00003100-0000-1000-8000-00805f9b34fb'],
+        has_legacy_pair: false,
+        firmware_version: '1.2.x+ (partial, inferred)',
+      });
+    });
+
+    test('Inferred firmware 1.3.x from custom 0x3400 UUID', async () => {
+      const bssid = 'TEST:RAVEN:04';
+      const service = '00003400-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'Raven13x', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+
+      expect(match).toBeDefined();
+      expect(match?.matched_signals).toMatchObject({
+        firmware_version: '1.3.x (inferred)',
+      });
+    });
+
+    test('Negative control: 0x180A alone does not produce a Tier 21 Raven candidate', async () => {
+      const bssid = 'TEST:RAVEN:05';
+      const service = '0000180a-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenNeg180A', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+      expect(match).toBeUndefined();
+    });
+
+    test('Negative control: 0x1809 alone (without 0x1819) does not produce a Tier 21 Raven candidate', async () => {
+      const bssid = 'TEST:RAVEN:06';
+      const service = '00001809-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenNeg1809', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+      expect(match).toBeUndefined();
+    });
+
+    test('Negative control: 0x1819 alone (without 0x1809) does not produce a Tier 21 Raven candidate', async () => {
+      const bssid = 'TEST:RAVEN:07';
+      const service = '00001819-0000-1000-8000-00805f9b34fb';
+
+      await query(
+        `
+        INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, service, lasttime_ms, lastlat, lastlon)
+        VALUES ($1, 'RavenNeg1819', 'E', 0, '', $2, 1700000000000, 34.0, -118.0)
+      `,
+        [bssid, service]
+      );
+
+      const candidates = await getEnrichedCandidates(query);
+      const match = candidates.find((c) => c.bssid === bssid && c.priority === 21);
+      expect(match).toBeUndefined();
     });
   });
 

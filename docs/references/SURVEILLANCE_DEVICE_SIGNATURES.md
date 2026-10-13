@@ -99,6 +99,8 @@ caught, 2 false positives):
 | `(?i)^penguin[_-]?.*`    | Regex     | MEDIUM     | Penguin mobile ALPR                                    |
 | `(?i)^pigvision[_-]?.*`  | Regex     | MEDIUM     | Pigvision surveillance system                          |
 
+> **Wi-Fi Scoring Narrowing:** Wi-Fi candidates classified FLOCK_SAFETY_CAMERA are dropped at scoring unless SSID matches `^Flock-[0-9A-Fa-f]{6}$` or is exactly lowercase `test_flck` (exact lowercase required). OUI-only and substring-only matches remain excluded.
+
 **Default hotspot credential:** password `security` (found on Flock Safety devices — GainSec research)
 
 ---
@@ -217,10 +219,17 @@ Source: NSM-Barii/flock-back `signatures.py` + Flock-You-Android `DetectionPatte
 ### 3.2 Firmware Version Fingerprinting from UUIDs
 
 ```
-Has 0x1809 or 0x1819, no 0x3100         → firmware 1.1.x (legacy)
+Has 0x1809 + 0x1819, no custom UUID     → firmware 1.1.x (legacy)
 Has 0x3100 + 0x3200, no 0x3400/0x3500   → firmware 1.2.x
 Has 0x3400 and/or 0x3500                 → firmware 1.3.x (latest, full diagnostics)
 ```
+
+> **Tier 21 Candidate Precedence Contract:**
+>
+> - **Profile 1 (EXACT):** ≥2 custom Raven UUIDs (`0x3100`–`0x3500`) → Base 90, `EXACT`. Only Profile 1 overrides generic Tier 20 (`RESIDENTIAL_CAMERA`) and Tier 5 Xuntong default (`FLOCK_SAFETY_CAMERA`).
+> - **Profile 2 (PARTIAL):** Legacy pair (`0x1809` + `0x1819`) → Base 60, `PARTIAL`. Does not override Tier 20 or Tier 5.
+> - **Profile 3 (PARTIAL):** Single custom Raven UUID (`0x3100`–`0x3500`) → Base 70, `PARTIAL`. Does not override Tier 20 or Tier 5.
+> - Standard `0x180A` alone, `0x1809`-only, and `0x1819`-only do not match Tier 21.
 
 ### 3.3 MAC OUI (WiFi / BLE)
 
@@ -263,6 +272,8 @@ Limited signature data available across all source repos.
 > **Research gap:** No known IEEE OUI registration, BLE service UUIDs, or manufacturer ID for
 > PigVision systems has been documented in any of the source repos. Detection relies entirely on
 > SSID/BLE name matching.
+>
+> **Implementation Status:** Pigvision BLE detection is deferred pending a database schema migration to add `PIGVISION_SYSTEM` to `app.surveillance_detections(chk_surveillance_device_type)`. Pigvision names are explicitly excluded from Tier 6 `FLOCK_SAFETY_CAMERA` classification to avoid device misattribution.
 
 ---
 
@@ -373,7 +384,7 @@ Final score capped at 100. Severity thresholds: **CRITICAL** ≥90 · **HIGH** �
 | --------------------------------------------- | ---------------- | ------------------------- |
 | ≥2 Raven service UUIDs (custom 0x3100–0x3500) | CRITICAL         | Base 90 — highly specific |
 | Single custom Raven UUID (0x3100–0x3500)      | HIGH             | Base 70                   |
-| Legacy Raven UUIDs (0x1809 + 0x1819 pair)     | HIGH             | Base 75 — unusual pairing |
+| Legacy Raven UUIDs (0x1809 + 0x1819 pair)     | MEDIUM           | Base 60, PARTIAL          |
 | BLE name exact `FS Ext Battery`               | HIGH             | Base 85                   |
 | BLE name regex `flock.*` or `falcon.*`        | HIGH             | Base 80                   |
 | BLE manufacturer ID 0x09C8 (XUNTONG)          | HIGH             | Base 80                   |
@@ -417,7 +428,7 @@ Based on Shadowcheck data model: network types `W` (WiFi), `E` (BLE), `B` (Bluet
 | ----------------------------------------------------- | -------------------------------- | ---------- | ------------ |
 | Raven UUIDs (0x3100–0x3500, any 2+)                   | `app.networks` service_uuids     | CRITICAL   | `E`          |
 | Raven UUID 0x3400 or 0x3500 (single, firmware 1.3.x)  | `app.networks` service_uuids     | HIGH       | `E`          |
-| Legacy Raven UUIDs 0x1809 + 0x1819 pair               | `app.networks` service_uuids     | HIGH       | `E`          |
+| Legacy Raven UUIDs 0x1809 + 0x1819 pair               | `app.networks` service_uuids     | MEDIUM     | `E`          |
 | BLE name `FS Ext Battery`, `Flock`, `Falcon`, `Raven` | `app.networks` SSID (BLE name)   | HIGH       | `E`          |
 | BLE manufacturer ID 0x09C8                            | `app.networks` manufacturer_data | HIGH       | `E`          |
 | BLE OUI match (high-confidence Flock list)            | `app.networks` BSSID             | HIGH       | `E`          |
