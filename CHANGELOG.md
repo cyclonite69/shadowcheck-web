@@ -848,7 +848,7 @@
 - support IMDSv2 for deploy config discovery ([057996a](https://github.com/cyclonite69/shadowcheck-web/commit/057996a115bb32d22a746bd9e90a9449cc4a70d9))
 - surveillance filter hierarchy, count fix, detection evidence panel ([90c49cd](https://github.com/cyclonite69/shadowcheck-web/commit/90c49cdfd0b1a16796e20d5a32186f430640ffb2))
 - surveillance tag assignment and detection evidence panel ([bdfadac](https://github.com/cyclonite69/shadowcheck-web/commit/bdfadac390a8e5f7c60af5fe77b2b9cf96603608))
-- **surveillance:** classify legacy Raven UUID pair at base likelihood 60 (PARTIAL) ([0d72588](https://github.com/cyclonite69/shadowcheck-web/commit/0d72588cd5ac3117cc641076499fb80c4f3d339f))
+- **surveillance:** classify legacy Raven UUID pair at base likelihood 60 (PARTIAL) ([f68aa8c](https://github.com/cyclonite69/shadowcheck-web/commit/f68aa8c5174b1e8c79f85443cbdafec958e6769b))
 - **surveillance:** debug and fix scan job execution pipeline end to end ([04ee68c](https://github.com/cyclonite69/shadowcheck-web/commit/04ee68c7c0daad60d8ee59f699211565a7b2b864))
 - **surveillance:** exclude false positives from detection query results ([724c969](https://github.com/cyclonite69/shadowcheck-web/commit/724c969c5039140b1bf83b5742cc22ba3c108a37))
 - **surveillance:** exclude WiFi networks from Flock detection and revert Explorer COALESCE ([fbe6a85](https://github.com/cyclonite69/shadowcheck-web/commit/fbe6a85605d6cea6398a6a7d2d227ed5312d3825))
