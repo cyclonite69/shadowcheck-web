@@ -359,7 +359,9 @@ export const ENRICHED_CANDIDATES_SQL = `
                  CASE WHEN n.service ~* '(^|[[:space:]])00003400-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
                  CASE WHEN n.service ~* '(^|[[:space:]])00003500-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END) >= 2)
             THEN 90
-          ELSE 70
+          WHEN (n.service ~* '(^|[[:space:]])0000(3100|3200|3300|3400|3500)-0000-1000-8000-00805f9b34fb([[:space:]]|$)')
+            THEN 70
+          ELSE 60
         END AS base_likelihood,
         CASE
           WHEN ((CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +

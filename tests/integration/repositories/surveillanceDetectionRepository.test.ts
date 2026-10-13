@@ -184,7 +184,7 @@ describe('SurveillanceDetectionRepository Integration', () => {
       });
     });
 
-    test('Profile 2: PARTIAL match with legacy pair 0x1809 + 0x1819, base likelihood 70, firmware 1.1.x', async () => {
+    test('Profile 2: PARTIAL match with legacy pair 0x1809 + 0x1819, base likelihood 60, firmware 1.1.x', async () => {
       const bssid = 'TEST:RAVEN:02';
       const service = '00001809-0000-1000-8000-00805f9b34fb 00001819-0000-1000-8000-00805f9b34fb';
 
@@ -201,7 +201,7 @@ describe('SurveillanceDetectionRepository Integration', () => {
 
       expect(match).toBeDefined();
       expect(match?.device_type).toBe('RAVEN_GUNSHOT_DETECTOR');
-      expect(match?.base_likelihood).toBe(70);
+      expect(match?.base_likelihood).toBe(60);
       expect(match?.match_quality).toBe('PARTIAL');
       expect(match?.detection_method).toBe('uuid_match');
       expect(match?.priority).toBe(21);

@@ -141,7 +141,7 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
       const ravenLegacy = makeRow({
         bssid: 'RA:VE:00:00:00:03',
         device_type: 'RAVEN_GUNSHOT_DETECTOR',
-        base_likelihood: 70,
+        base_likelihood: 60,
         match_quality: 'PARTIAL',
         detection_method: 'uuid_match',
         matched_signals: {
@@ -167,7 +167,7 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
 
       const legacyRes = results.find((r) => r.bssid === 'RA:VE:00:00:00:03')!;
       expect(legacyRes.device_type).toBe('RAVEN_GUNSHOT_DETECTOR');
-      expect(legacyRes.confidence).toBe(singleRes.confidence);
+      expect(legacyRes.confidence).toBeLessThan(singleRes.confidence);
     });
   });
 
@@ -234,7 +234,7 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
       const tier21Row = makeRow({
         bssid,
         device_type: 'RAVEN_GUNSHOT_DETECTOR',
-        base_likelihood: 70,
+        base_likelihood: 60,
         match_quality: 'PARTIAL',
         detection_method: 'uuid_match',
         priority: 21,
@@ -257,7 +257,7 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
       const tier21Row = makeRow({
         bssid,
         device_type: 'RAVEN_GUNSHOT_DETECTOR',
-        base_likelihood: 70,
+        base_likelihood: 60,
         match_quality: 'PARTIAL',
         detection_method: 'uuid_match',
         priority: 21,
