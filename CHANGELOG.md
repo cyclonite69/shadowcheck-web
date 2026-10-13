@@ -1289,7 +1289,7 @@
 - **geospatial:** add bounded popup cards for wigle and agency markers ([1f7576a](https://github.com/cyclonite69/shadowcheck-web/commit/1f7576a5bcbfc199c7d55a4584b99e69822d7bc0))
 - **geospatial:** add cell actions for device classes and emitDetectionEvidence event bus ([b85535f](https://github.com/cyclonite69/shadowcheck-web/commit/b85535f1a8f2e34306bdb74a2fcf5f5dc7dbcf3f))
 - **geospatial:** add client MVT layers and popup escaping ([37d6aa6](https://github.com/cyclonite69/shadowcheck-web/commit/37d6aa6852868a6f03f032332bc0c5b89b18af32))
-- **geospatial:** add Home marker to the Layers menu ([7727d9b](https://github.com/cyclonite69/shadowcheck-web/commit/7727d9b4f8164bd432187d627559951e881cdf49))
+- **geospatial:** add Home marker to the Layers menu ([800816a](https://github.com/cyclonite69/shadowcheck-web/commit/800816add42e6c4f9739a1774f45c360a5519984))
 - **geospatial:** add matched media GeoJSON endpoint ([8540061](https://github.com/cyclonite69/shadowcheck-web/commit/85400616f83200a19969b4d13ca5fe2a968aebbb))
 - **geospatial:** add MVT routes and endpoint registry entries ([f0c05d1](https://github.com/cyclonite69/shadowcheck-web/commit/f0c05d1c2ce535a5e7e7a431649c0d802476d417))
 - **geospatial:** add PostGIS MVT functions and tile repositories ([ab05329](https://github.com/cyclonite69/shadowcheck-web/commit/ab0532962fbaceed0164b26ebeec917b2e90a56c))

@@ -83,7 +83,7 @@ const cleanupCases: CleanupCase[] = [
         };
       }, []);
 
-      useFederalCourthouses(mapRef, true, false, { current: null }, false, []);
+      useFederalCourthouses(mapRef, true, false, { current: null }, false);
     },
   },
   {

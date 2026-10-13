@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
-import type { CourthouseMatch } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { renderCourthousePopupCard } from '../../utils/geospatial/renderMapPopupCards';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
@@ -40,51 +39,12 @@ interface FederalCourthousesGeoJSON {
   features: CourthouseFeature[];
 }
 
-function buildNearestCourthouseGeoJSON(courthouses: CourthouseMatch[]): FederalCourthousesGeoJSON {
-  return {
-    type: 'FeatureCollection',
-    features: courthouses
-      .filter(
-        (courthouse) =>
-          courthouse.id !== null &&
-          courthouse.id !== undefined &&
-          courthouse.name &&
-          courthouse.latitude !== null &&
-          courthouse.latitude !== undefined &&
-          courthouse.longitude !== null &&
-          courthouse.longitude !== undefined
-      )
-      .map((courthouse) => ({
-        type: 'Feature',
-        id: `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`,
-        geometry: {
-          type: 'Point',
-          coordinates: [courthouse.longitude!, courthouse.latitude!],
-        },
-        properties: {
-          id: courthouse.id!,
-          name: courthouse.name!,
-          short_name: courthouse.short_name ?? null,
-          courthouse_type: courthouse.courthouse_type ?? 'district_court',
-          district: courthouse.district ?? '',
-          circuit: courthouse.circuit ?? '',
-          address_line1: null,
-          city: courthouse.city ?? '',
-          state: courthouse.state ?? '',
-          postal_code: courthouse.postal_code ?? null,
-          active: true,
-        },
-      })),
-  };
-}
-
 export const useFederalCourthouses = (
   mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
   isVisible: boolean = true,
   mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>,
-  clusteringEnabled: boolean = true,
-  courthouseMatches?: CourthouseMatch[]
+  clusteringEnabled: boolean = true
 ) => {
   const [hasBeenVisible, setHasBeenVisible] = useState(isVisible);
 
@@ -94,7 +54,7 @@ export const useFederalCourthouses = (
     }
   }, [isVisible, hasBeenVisible]);
 
-  const shouldFetchAllCourthouses = hasBeenVisible && courthouseMatches === undefined;
+  const shouldFetchAllCourthouses = hasBeenVisible;
   const {
     data,
     loading,
@@ -107,13 +67,8 @@ export const useFederalCourthouses = (
     [shouldFetchAllCourthouses]
   );
   const error = fetchError?.message ?? null;
-  const renderedData = courthouseMatches ? buildNearestCourthouseGeoJSON(courthouseMatches) : data;
-  const renderedDataKey = courthouseMatches
-    ? courthouseMatches
-        .map((courthouse) => `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`)
-        .sort()
-        .join('|')
-    : `all:${data?.features.length ?? 0}`;
+  const renderedData = data;
+  const renderedDataKey = `all:${data?.features.length ?? 0}`;
 
   const dataRef = useRef<FederalCourthousesGeoJSON | null>(null);
   const isVisibleRef = useRef(isVisible);

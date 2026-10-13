@@ -2,29 +2,6 @@
  * Agency API
  */
 
-import { apiClient } from './client';
-
-interface AgencyOffice {
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  phone: string;
-  website: string;
-  latitude: number;
-  longitude: number;
-  distance_meters?: number;
-}
-
-interface NearestAgenciesResponse {
-  ok: boolean;
-  bssid: string;
-  agencies: AgencyOffice[];
-  count: number;
-  radius_km: number;
-}
-
 export interface DeflockCameraProperties {
   id: number;
   city: string | null;
@@ -93,78 +70,7 @@ export interface AlprCamerasGeoJSON {
   features: AlprCameraFeature[];
 }
 
-/** Single agency row returned from the batch nearest-agencies endpoint. */
-export interface AgencyMatch {
-  cluster_id?: number;
-  cluster_count?: number;
-  cluster_lat?: number;
-  cluster_lon?: number;
-  has_wigle_obs?: boolean;
-  has_local_obs?: boolean;
-  id?: number;
-  name?: string | null;
-  office_type?: string | null;
-  city?: string | null;
-  state?: string | null;
-  postal_code?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  distance_meters?: number;
-}
-
-interface NearestAgenciesBatchResponse {
-  ok: boolean;
-  bssids: string[];
-  agencies: AgencyMatch[];
-  count: number;
-  radius_km: number;
-}
-
-export interface CourthouseMatch {
-  cluster_id?: number;
-  cluster_count?: number;
-  cluster_lat?: number;
-  cluster_lon?: number;
-  has_wigle_obs?: boolean;
-  has_local_obs?: boolean;
-  id?: number | null;
-  name?: string | null;
-  short_name?: string | null;
-  courthouse_type?: string | null;
-  district?: string | null;
-  circuit?: string | null;
-  city?: string | null;
-  state?: string | null;
-  postal_code?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  distance_meters?: number;
-}
-
 export const agencyApi = {
-  async getNearestAgenciesBatch(
-    bssids: string[],
-    radius: number = 250
-  ): Promise<NearestAgenciesBatchResponse> {
-    return apiClient.post<NearestAgenciesBatchResponse>(
-      `/networks/nearest-agencies/batch?radius=${radius}`,
-      { bssids }
-    );
-  },
-
-  async getNearestAgencies(bssid: string, radius: number): Promise<NearestAgenciesResponse> {
-    return apiClient.get<NearestAgenciesResponse>(
-      `/networks/nearest-agencies/${encodeURIComponent(bssid)}?radius=${radius}`
-    );
-  },
-
-  async getNearestCourthousesBatch(
-    bssids: string[],
-    radius: number = 250
-  ): Promise<{ ok: boolean; courthouses: CourthouseMatch[]; count: number; radius_km: number }> {
-    return apiClient.post(`/networks/nearest-courthouses/batch?radius=${radius}`, { bssids });
-  },
-
   // Agency Offices (GeoJSON)
   async getAgencyOffices(): Promise<any> {
     const response = await fetch('/agency-offices', { credentials: 'include' });
