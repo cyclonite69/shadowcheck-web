@@ -103,6 +103,9 @@ export const ENRICHED_CANDIDATES_SQL = `
       UNION ALL
 
       -- 6. BLE device name patterns (no mfgrid hit)
+      -- NOTE: Pigvision BLE pattern recognition is deferred pending a schema migration
+      -- to add PIGVISION_SYSTEM to app.surveillance_detections(chk_surveillance_device_type).
+      -- Pigvision must not be misattributed as FLOCK_SAFETY_CAMERA.
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         CASE WHEN n.ssid ~* '^raven' THEN 'RAVEN_GUNSHOT_DETECTOR'
              WHEN n.ssid ~* '^fs ext battery' THEN 'FS_EXT_BATTERY'
@@ -339,6 +342,79 @@ export const ENRICHED_CANDIDATES_SQL = `
         '%Arlo%', '%Netgear%', '%Wyze%', '%Eufy%', '%Anker Innovations%',
         '%SimpliSafe%'
       ])
+
+      UNION ALL
+
+      -- 21. Raven gunshot detector BLE service UUIDs
+      -- NOTE: The legacy UUID pair (0x1809 + 0x1819) corresponds to standard Bluetooth SIG
+      -- services (Health Thermometer + Location and Navigation). It is included here as a
+      -- research-derived signature per SURVEILLANCE_DEVICE_SIGNATURES.md §3, pending further
+      -- device-specific capture validation.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'RAVEN_GUNSHOT_DETECTOR',
+        CASE
+          WHEN ((CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003200-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003300-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003400-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003500-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END) >= 2)
+            THEN 90
+          ELSE 70
+        END AS base_likelihood,
+        CASE
+          WHEN ((CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003200-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003300-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003400-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                 CASE WHEN n.service ~* '(^|[[:space:]])00003500-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END) >= 2)
+            THEN 'EXACT'
+          ELSE 'PARTIAL'
+        END AS match_quality,
+        'uuid_match',
+        jsonb_build_object(
+          'service', n.service,
+          'matched_custom_uuid_count', (
+            CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+            CASE WHEN n.service ~* '(^|[[:space:]])00003200-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+            CASE WHEN n.service ~* '(^|[[:space:]])00003300-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+            CASE WHEN n.service ~* '(^|[[:space:]])00003400-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+            CASE WHEN n.service ~* '(^|[[:space:]])00003500-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END
+          ),
+          'matched_custom_uuids', to_jsonb(array_remove(ARRAY[
+            CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '00003100-0000-1000-8000-00805f9b34fb' END,
+            CASE WHEN n.service ~* '(^|[[:space:]])00003200-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '00003200-0000-1000-8000-00805f9b34fb' END,
+            CASE WHEN n.service ~* '(^|[[:space:]])00003300-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '00003300-0000-1000-8000-00805f9b34fb' END,
+            CASE WHEN n.service ~* '(^|[[:space:]])00003400-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '00003400-0000-1000-8000-00805f9b34fb' END,
+            CASE WHEN n.service ~* '(^|[[:space:]])00003500-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '00003500-0000-1000-8000-00805f9b34fb' END
+          ], NULL)),
+          'has_legacy_pair', (
+            n.service ~* '(^|[[:space:]])00001809-0000-1000-8000-00805f9b34fb([[:space:]]|$)' AND
+            n.service ~* '(^|[[:space:]])00001819-0000-1000-8000-00805f9b34fb([[:space:]]|$)'
+          ),
+          'firmware_version', (
+            CASE
+              WHEN n.service ~* '(^|[[:space:]])0000(3400|3500)-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '1.3.x (inferred)'
+              WHEN ((CASE WHEN n.service ~* '(^|[[:space:]])00003100-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                     CASE WHEN n.service ~* '(^|[[:space:]])00003200-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END +
+                     CASE WHEN n.service ~* '(^|[[:space:]])00003300-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN 1 ELSE 0 END) >= 2) THEN '1.2.x (inferred)'
+              WHEN n.service ~* '(^|[[:space:]])0000(3100|3200|3300)-0000-1000-8000-00805f9b34fb([[:space:]]|$)' THEN '1.2.x+ (partial, inferred)'
+              WHEN (n.service ~* '(^|[[:space:]])00001809-0000-1000-8000-00805f9b34fb([[:space:]]|$)' AND
+                    n.service ~* '(^|[[:space:]])00001819-0000-1000-8000-00805f9b34fb([[:space:]]|$)') THEN '1.1.x (legacy, inferred)'
+              ELSE 'unknown'
+            END
+          )
+        ),
+        21
+      FROM app.networks n
+      WHERE n.type IN ('E', 'B')
+        AND n.service IS NOT NULL
+        AND (
+          n.service ~* '(^|[[:space:]])0000(3100|3200|3300|3400|3500)-0000-1000-8000-00805f9b34fb([[:space:]]|$)'
+          OR (
+            n.service ~* '(^|[[:space:]])00001809-0000-1000-8000-00805f9b34fb([[:space:]]|$)'
+            AND n.service ~* '(^|[[:space:]])00001819-0000-1000-8000-00805f9b34fb([[:space:]]|$)'
+          )
+        )
 
     ),
     obs_stats AS (
