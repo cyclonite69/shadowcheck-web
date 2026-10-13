@@ -11,6 +11,23 @@ import {
   type PopupDragState,
 } from '../../utils/geospatial/setupPopupDrag';
 import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
+import {
+  FIELD_OFFICE_COLOR,
+  RESIDENT_AGENCY_COLOR,
+  FIELD_OFFICE_LAYER_IDS,
+  RESIDENT_AGENCY_LAYER_IDS,
+  FIELD_OFFICE_LABEL,
+  RESIDENT_AGENCY_LABEL,
+} from '../../constants/agencyCourthouseStyles';
+
+export {
+  FIELD_OFFICE_COLOR,
+  RESIDENT_AGENCY_COLOR,
+  FIELD_OFFICE_LAYER_IDS,
+  RESIDENT_AGENCY_LAYER_IDS,
+  FIELD_OFFICE_LABEL,
+  RESIDENT_AGENCY_LABEL,
+};
 
 interface AgencyOffice {
   type: 'Feature';
@@ -268,7 +285,7 @@ export function ensureAgencyOfficeLayers(
       source: 'agency-offices',
       filter: ['has', 'point_count'],
       paint: {
-        'circle-color': '#dc2626',
+        'circle-color': FIELD_OFFICE_COLOR,
         'circle-opacity': 0.7,
         'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 50, 25],
         'circle-stroke-width': 2,
@@ -305,7 +322,7 @@ export function ensureAgencyOfficeLayers(
         ['==', ['get', 'office_type'], 'field_office'],
       ],
       paint: {
-        'circle-color': '#dc2626',
+        'circle-color': FIELD_OFFICE_COLOR,
         'circle-opacity': 0.8,
         'circle-radius': 6,
         'circle-stroke-width': 1.5,
@@ -325,7 +342,7 @@ export function ensureAgencyOfficeLayers(
         ['==', ['get', 'office_type'], 'resident_agency'],
       ],
       paint: {
-        'circle-color': '#f97316',
+        'circle-color': RESIDENT_AGENCY_COLOR,
         'circle-opacity': 0.8,
         'circle-radius': 6,
         'circle-stroke-width': 1.5,

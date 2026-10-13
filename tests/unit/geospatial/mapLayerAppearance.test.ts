@@ -14,11 +14,14 @@ describe('applyMapLayerAppearance', () => {
       wigleV3: '#8b5cf6',
       wigleKml: '#eab308',
       alpr: '#d946ef',
-      agencies: '#dc2626',
-      courthouses: '#6366f1',
+      fieldOffices: '#dc2626',
+      residentAgencies: '#f97316',
+      courthouses: '#f59e0b',
       shotspotterZones: '#7f1d1d',
       shotspotterSensors: '#fb7185',
     });
+    expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('agencies');
+    expect(GEOSPATIAL_LAYER_COLORS).not.toHaveProperty('agencies');
     expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('agencyMatches');
     expect(GEOSPATIAL_LAYER_COLORS).not.toHaveProperty('agencyMatches');
     expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('deflock');

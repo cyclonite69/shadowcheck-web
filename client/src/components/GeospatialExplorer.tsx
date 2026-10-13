@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
@@ -10,6 +10,8 @@ import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPan
 import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
 import { useGeospatialOverlayOrchestration } from './geospatial/hooks/useGeospatialOverlayOrchestration';
 import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
+import { useAgencyOffices, type AgencyVisibility } from './hooks/useAgencyOffices';
+import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
@@ -136,7 +138,34 @@ export default function GeospatialExplorer() {
       shotspotterSensors: state.showShotspotterSensors,
     },
   });
-  const layerError = [wigleResultLayers.error && `WiGLE results: ${wigleResultLayers.error}`]
+
+  const agencyVisibility = useMemo<AgencyVisibility>(
+    () => ({
+      fieldOffices: state.showFieldOffices,
+      residentAgencies: state.showResidentAgencies,
+    }),
+    [state.showFieldOffices, state.showResidentAgencies]
+  );
+  const { error: agencyOfficeError } = useAgencyOffices(
+    state.mapRef,
+    state.mapReady,
+    agencyVisibility,
+    state.mapboxRef,
+    true
+  );
+  const { error: federalCourthouseError } = useFederalCourthouses(
+    state.mapRef,
+    state.mapReady,
+    state.showCourthousesPanel,
+    state.mapboxRef,
+    true
+  );
+
+  const layerError = [
+    wigleResultLayers.error && `WiGLE results: ${wigleResultLayers.error}`,
+    agencyOfficeError && `Agency offices: ${agencyOfficeError}`,
+    federalCourthouseError && `Courthouses: ${federalCourthouseError}`,
+  ]
     .filter(Boolean)
     .join('; ');
 

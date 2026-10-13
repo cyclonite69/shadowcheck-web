@@ -43,6 +43,7 @@ jest.mock('../../../client/src/components/geospatial/media/MatchedMediaCarouselP
 }));
 
 import { useFederalCourthouses } from '../../../client/src/components/hooks/useFederalCourthouses';
+import { useAgencyOffices } from '../../../client/src/components/hooks/useAgencyOffices';
 import { useMediaLocationLayers } from '../../../client/src/components/geospatial/hooks/useMediaLocationLayers';
 import { useHomeLocationLayer } from '../../../client/src/components/geospatial/hooks/useHomeLocationLayer';
 
@@ -84,6 +85,26 @@ const cleanupCases: CleanupCase[] = [
       }, []);
 
       useFederalCourthouses(mapRef, true, false, { current: null }, false);
+    },
+  },
+  {
+    name: 'agency offices',
+    cleanupCondition: 'mapReady=true and mapRef.current is the map',
+    mount: (mapRef, fakeMap) => {
+      React.useEffect(() => {
+        return () => {
+          fakeMap.remove();
+          mapRef.current = null;
+        };
+      }, []);
+
+      useAgencyOffices(
+        mapRef,
+        true,
+        { fieldOffices: true, residentAgencies: true },
+        { current: null },
+        false
+      );
     },
   },
   {

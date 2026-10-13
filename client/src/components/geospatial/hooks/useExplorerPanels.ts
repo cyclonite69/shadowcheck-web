@@ -14,11 +14,15 @@ export const useExplorerPanels = () => {
 
   const showCourthousesPanel = visibility.courthouses;
   const showAlprCameras = visibility.alpr;
+  const showFieldOffices = visibility.fieldOffices;
+  const showResidentAgencies = visibility.residentAgencies;
 
   const toggleFilters = () => setFiltersOpen((open) => !open);
   const toggleColumnSelector = () => setShowColumnSelector((open) => !open);
   const toggleCourthousesPanel = () => toggleLayer('courthouses');
   const toggleAlprCameras = () => toggleLayer('alpr');
+  const toggleFieldOffices = () => toggleLayer('fieldOffices');
+  const toggleResidentAgencies = () => toggleLayer('residentAgencies');
 
   const mapLayerOptions = useMemo<GeospatialLayerOption[]>(
     () =>
@@ -46,7 +50,8 @@ export const useExplorerPanels = () => {
     showWigleV3: visibility.wigleV3,
     showWigleKml: visibility.wigleKml,
     showFieldObservations: visibility.fieldObservations,
-    showAgencyOffices: visibility.agencies,
+    showFieldOffices,
+    showResidentAgencies,
     showShotspotterZones: visibility.shotspotterZones,
     showShotspotterSensors: visibility.shotspotterSensors,
     mapLayerOptions,
@@ -61,7 +66,8 @@ export const useExplorerPanels = () => {
     toggleWigleV3: () => toggleLayer('wigleV3'),
     toggleWigleKml: () => toggleLayer('wigleKml'),
     toggleFieldObservations: () => toggleLayer('fieldObservations'),
-    toggleAgencyOffices: () => toggleLayer('agencies'),
+    toggleFieldOffices,
+    toggleResidentAgencies,
     toggleShotspotterZones: () => toggleLayer('shotspotterZones'),
     toggleShotspotterSensors: () => toggleLayer('shotspotterSensors'),
   };

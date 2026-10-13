@@ -11,6 +11,25 @@ import {
   type PopupDragState,
 } from '../../utils/geospatial/setupPopupDrag';
 import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
+import {
+  FEDERAL_COURTHOUSE_COLOR,
+  DISTRICT_COURT_COLOR,
+  CIRCUIT_COURT_COLOR,
+  SPECIALTY_COURT_COLOR,
+  COURTHOUSE_CLUSTER_COLOR,
+  COURTHOUSE_LAYER_IDS,
+  FEDERAL_COURTHOUSE_LABEL,
+} from '../../constants/agencyCourthouseStyles';
+
+export {
+  FEDERAL_COURTHOUSE_COLOR,
+  DISTRICT_COURT_COLOR,
+  CIRCUIT_COURT_COLOR,
+  SPECIALTY_COURT_COLOR,
+  COURTHOUSE_CLUSTER_COLOR,
+  COURTHOUSE_LAYER_IDS,
+  FEDERAL_COURTHOUSE_LABEL,
+};
 
 interface CourthouseFeature {
   type: 'Feature';
@@ -263,7 +282,7 @@ export function ensureFederalCourthouseLayers(
       source: 'federal-courthouses',
       filter: ['has', 'point_count'],
       paint: {
-        'circle-color': '#f59e0b',
+        'circle-color': COURTHOUSE_CLUSTER_COLOR,
         'circle-opacity': 0.7,
         'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 50, 25],
         'circle-stroke-width': 2,
@@ -300,7 +319,7 @@ export function ensureFederalCourthouseLayers(
         ['==', ['get', 'courthouse_type'], 'district_court'],
       ],
       paint: {
-        'circle-color': '#f59e0b',
+        'circle-color': DISTRICT_COURT_COLOR,
         'circle-opacity': 0.85,
         'circle-radius': 6,
         'circle-stroke-width': 1.5,
@@ -320,7 +339,7 @@ export function ensureFederalCourthouseLayers(
         ['==', ['get', 'courthouse_type'], 'circuit_court_of_appeals'],
       ],
       paint: {
-        'circle-color': '#a855f7',
+        'circle-color': CIRCUIT_COURT_COLOR,
         'circle-opacity': 0.85,
         'circle-radius': 7,
         'circle-stroke-width': 1.5,
@@ -347,7 +366,7 @@ export function ensureFederalCourthouseLayers(
         ],
       ],
       paint: {
-        'circle-color': '#06b6d4',
+        'circle-color': SPECIALTY_COURT_COLOR,
         'circle-opacity': 0.85,
         'circle-radius': 5,
         'circle-stroke-width': 1.5,

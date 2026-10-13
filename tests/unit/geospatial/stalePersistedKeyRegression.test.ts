@@ -115,4 +115,37 @@ describe('Stale persisted key regression test (agencyMatches)', () => {
     const optionKeys = panels.mapLayerOptions.map((opt) => opt.key);
     expect(optionKeys).not.toContain('agencyMatches');
   });
+
+  it('drops stale agencies key from persisted localStorage and restores valid fieldOffices/residentAgencies', () => {
+    const staleStoredState = {
+      visibility: {
+        agencies: true,
+        wigleV2: true,
+        courthouses: true,
+      },
+      opacity: {
+        agencies: 0.5,
+        wigleV2: 0.8,
+        courthouses: 1,
+      },
+      order: ['agencies', 'courthouses', 'wigleV2'],
+    };
+
+    localStorageMock.setItem(STORAGE_KEY, JSON.stringify(staleStoredState));
+
+    const preferences = useGeospatialLayerPreferences();
+
+    // Stale key must be dropped from visibility, opacity, and order
+    expect(preferences.visibility).not.toHaveProperty('agencies');
+    expect(preferences.opacity).not.toHaveProperty('agencies');
+    expect(preferences.order).not.toContain('agencies');
+
+    // New keys must default to WiGLE defaults (true)
+    expect((preferences.visibility as any).fieldOffices).toBe(true);
+    expect((preferences.visibility as any).residentAgencies).toBe(true);
+    expect((preferences.visibility as any).courthouses).toBe(true);
+
+    // agencies must not be present in layerCatalog ID mapping
+    expect(GEOSPATIAL_LAYER_IDS).not.toHaveProperty('agencies');
+  });
 });

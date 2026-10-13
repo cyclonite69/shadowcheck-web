@@ -1301,6 +1301,7 @@
 - **geospatial:** enhance network tooltips and enable agency/courthouse popups on WiGLE map ([24f372d](https://github.com/cyclonite69/shadowcheck-web/commit/24f372dba6b8cd897403f0a77fef1ae977b119ed))
 - **geospatial:** establish WiGLE layer parity and extract map appearance hooks ([d8216a3](https://github.com/cyclonite69/shadowcheck-web/commit/d8216a3fb274a13dc336700f66053ffedf9663a6))
 - **geospatial:** expose activity metrics in explorer columns ([a8a8465](https://github.com/cyclonite69/shadowcheck-web/commit/a8a8465166bec321add39b0f48404123b208cb3c))
+- **geospatial:** match WiGLE Field Offices, Resident Agencies and Federal Courthouses layers ([f4d7acb](https://github.com/cyclonite69/shadowcheck-web/commit/f4d7acb49d87cb9c0923ec4d0604bd2c653b49a1))
 - **geospatial:** persist visible sibling group indicators ([1edb27d](https://github.com/cyclonite69/shadowcheck-web/commit/1edb27dc3fbf560ee486932af0365fbc9d1f4bc6))
 - **geospatial:** pin-drop radius filter via right-click or crosshair button ([5103cf0](https://github.com/cyclonite69/shadowcheck-web/commit/5103cf0fd1cbba978a4a08f10c5286c6809d112c))
 - **geospatial:** radius filter pin, circle, dotted line with distance label, popup radius adjuster ([7190eff](https://github.com/cyclonite69/shadowcheck-web/commit/7190eff1ef48eab2f0a44f1f03bc2928611ebc64))

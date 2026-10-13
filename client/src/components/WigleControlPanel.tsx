@@ -1,6 +1,14 @@
 import React from 'react';
 import { LayerToggle } from './ui/LayerToggle';
 import type { WigleLayerState } from './wigle/useWigleLayers';
+import {
+  FIELD_OFFICE_LABEL,
+  RESIDENT_AGENCY_LABEL,
+  FEDERAL_COURTHOUSE_LABEL,
+  FIELD_OFFICE_COLOR,
+  RESIDENT_AGENCY_COLOR,
+  FEDERAL_COURTHOUSE_COLOR,
+} from '../constants/agencyCourthouseStyles';
 
 interface WigleControlPanelProps {
   isOpen: boolean;
@@ -99,22 +107,22 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             color="#60a5fa"
           />
           <LayerToggle
-            label="Field Offices"
+            label={FIELD_OFFICE_LABEL}
             enabled={layers.fieldOffices}
             onChange={() => onToggleLayer('fieldOffices')}
-            color="#dc2626"
+            color={FIELD_OFFICE_COLOR}
           />
           <LayerToggle
-            label="Resident Agencies"
+            label={RESIDENT_AGENCY_LABEL}
             enabled={layers.residentAgencies}
             onChange={() => onToggleLayer('residentAgencies')}
-            color="#f97316"
+            color={RESIDENT_AGENCY_COLOR}
           />
           <LayerToggle
-            label="Federal Courthouses"
+            label={FEDERAL_COURTHOUSE_LABEL}
             enabled={layers.federalCourthouses}
             onChange={() => onToggleLayer('federalCourthouses')}
-            color="#f59e0b"
+            color={FEDERAL_COURTHOUSE_COLOR}
           />
           <LayerToggle
             label="Flock Cameras (DeFlock)"
