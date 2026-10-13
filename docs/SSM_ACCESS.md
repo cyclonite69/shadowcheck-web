@@ -1,5 +1,8 @@
 # AWS SSM Session Manager Access
 
+> [!NOTE]
+> AWS EC2 production instance currently unavailable; local Docker Compose is the only live environment; SSM and scs_rebuild.sh instructions retained for if the instance is restored.
+
 **Quick Reference for EC2 Access — Read This First**
 
 ## Connect to EC2 Instance

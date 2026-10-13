@@ -60,6 +60,9 @@ See [deploy/homelab/README.md](../deploy/homelab/README.md) for setup guide.
 
 ### 2. AWS Production
 
+> [!NOTE]
+> AWS EC2 production instance currently unavailable; local Docker Compose is the only live environment; SSM and scs_rebuild.sh instructions retained for if the instance is restored.
+
 Best for:
 
 - Scalable cloud infrastructure
