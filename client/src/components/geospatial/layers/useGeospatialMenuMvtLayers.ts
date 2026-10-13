@@ -4,8 +4,6 @@ import type * as mapboxglType from 'mapbox-gl';
 import type { AlprCameraProperties } from '../../../api/agencyApi';
 import { renderAlprPopupCard } from '../../hooks/useAlprCameras';
 import {
-  renderAgencyPopupCard,
-  renderCourthousePopupCard,
   renderWigleNetworkPopupCard,
   renderWigleObservationPopupCard,
 } from '../../../utils/geospatial/renderMapPopupCards';
@@ -19,8 +17,6 @@ import {
 } from '../../../utils/geospatial/setupPopupDrag';
 import {
   applyGeospatialLayerVisibility,
-  ensureAgencyOfficesMvtLayer,
-  ensureCourthousesMvtLayer,
   ensureGeospatialAlprMvtLayer,
   ensureGeospatialFieldDataMvtLayer,
   ensureKmlMvtLayer,
@@ -36,8 +32,6 @@ const INTERACTIVE_LAYER_IDS = [
   'geospatial-wigle-v3-mvt-points',
   'geospatial-kml-mvt-points',
   'geospatial-alpr-mvt-points',
-  'geospatial-agencies-mvt-points',
-  'geospatial-courthouses-mvt-points',
   'geospatial-shotspotter-zone-fill',
   'geospatial-shotspotter-sensor-points',
 ];
@@ -98,38 +92,6 @@ function renderAlprFeature(properties: FeatureProperties, coordinates: [number, 
     electricity: stringProperty(properties.electricity),
   };
   return renderAlprPopupCard(alprProperties, coordinates);
-}
-
-function renderAgencyFeature(properties: FeatureProperties): string {
-  const street = stringProperty(properties.address_line1);
-  const cityStateZip = [
-    [properties.city, properties.state].filter(Boolean).join(', '),
-    properties.postal_code,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const fullAddress = [street, cityStateZip].filter(Boolean).join(', ');
-
-  return renderAgencyPopupCard({
-    agency: stringProperty(properties.agency),
-    name: stringProperty(properties.name) ?? undefined,
-    officeType: stringProperty(properties.office_type) ?? undefined,
-    address: fullAddress || 'Address unavailable',
-    phone: stringProperty(properties.phone),
-    parentOffice: stringProperty(properties.parent_office),
-    website: stringProperty(properties.website),
-  });
-}
-
-function renderCourthouseFeature(properties: FeatureProperties): string {
-  return renderCourthousePopupCard({
-    name: stringProperty(properties.court_name ?? properties.name) ?? 'Federal Courthouse',
-    courthouseType:
-      stringProperty(properties.building_type ?? properties.courthouse_type) ?? 'Courthouse',
-    district: stringProperty(properties.district) ?? 'Unknown',
-    circuit: stringProperty(properties.circuit) ?? 'Unknown',
-    address: stringProperty(properties.address) ?? 'Address unavailable',
-  });
 }
 
 function escapeHtml(value: string): string {
@@ -214,10 +176,7 @@ function renderFeatureCard(
         },
         coordinates
       );
-    case 'geospatial-agencies-mvt-points':
-      return renderAgencyFeature(properties);
-    case 'geospatial-courthouses-mvt-points':
-      return renderCourthouseFeature(properties);
+
     case 'geospatial-shotspotter-zone-fill':
     case 'geospatial-shotspotter-sensor-points':
       return renderShotspotterFeature(layerId, properties);
@@ -317,8 +276,6 @@ export function useGeospatialMenuMvtLayers({
       ensureWigleV3MvtLayer(map);
       ensureKmlMvtLayer(map);
       ensureGeospatialAlprMvtLayer(map);
-      ensureAgencyOfficesMvtLayer(map);
-      ensureCourthousesMvtLayer(map);
       ensureShotspotterMvtLayers(map);
       applyGeospatialLayerVisibility(map, visible);
       detachInteractions();
@@ -335,9 +292,7 @@ export function useGeospatialMenuMvtLayers({
     mapboxRef,
     mapReady,
     mapRef,
-    visible.agencies,
     visible.alpr,
-    visible.courthouses,
     visible.fieldObservations,
     visible.kml,
     visible.shotspotterSensors,

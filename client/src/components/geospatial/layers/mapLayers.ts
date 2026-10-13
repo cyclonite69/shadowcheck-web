@@ -441,32 +441,6 @@ export const ensureDeflockMvtLayer = (map: Map) => {
   );
 };
 
-/** Add agency offices from the authenticated vector-tile endpoint. */
-export const ensureAgencyOfficesMvtLayer = (map: Map) => {
-  const sourceId = 'geospatial-agencies-mvt';
-  ensureGeospatialVectorSource(map, sourceId, 'agencies');
-  ensureGeospatialCircleLayer(
-    map,
-    sourceId,
-    'agency_offices',
-    'geospatial-agencies-mvt-points',
-    '#dc2626'
-  );
-};
-
-/** Add federal courthouses from the authenticated vector-tile endpoint. */
-export const ensureCourthousesMvtLayer = (map: Map) => {
-  const sourceId = 'geospatial-courthouses-mvt';
-  ensureGeospatialVectorSource(map, sourceId, 'courthouses');
-  ensureGeospatialCircleLayer(
-    map,
-    sourceId,
-    'federal_courthouses',
-    'geospatial-courthouses-mvt-points',
-    '#6366f1'
-  );
-};
-
 /** Add ShotSpotter zones and sensors while retaining their source tables and data pipeline. */
 export const ensureShotspotterMvtLayers = (map: Map) => {
   const sourceId = 'geospatial-shotspotter-mvt';
@@ -633,8 +607,6 @@ export interface GeospatialMvtLayerVisibility {
   kml: boolean;
   fieldObservations: boolean;
   alpr: boolean;
-  agencies: boolean;
-  courthouses: boolean;
   shotspotterZones: boolean;
   shotspotterSensors: boolean;
 }
@@ -653,8 +625,6 @@ export const applyGeospatialLayerVisibility = (map: Map, layers: GeospatialMvtLa
   setVis('geospatial-kml-mvt-points', layers.kml);
   setVis('geospatial-alpr-mvt-pulse', layers.alpr);
   setVis('geospatial-alpr-mvt-points', layers.alpr);
-  setVis('geospatial-agencies-mvt-points', layers.agencies);
-  setVis('geospatial-courthouses-mvt-points', layers.courthouses);
   setVis('geospatial-shotspotter-zone-fill', layers.shotspotterZones);
   setVis('geospatial-shotspotter-zone-line', layers.shotspotterZones);
   setVis('geospatial-shotspotter-sensor-points', layers.shotspotterSensors);

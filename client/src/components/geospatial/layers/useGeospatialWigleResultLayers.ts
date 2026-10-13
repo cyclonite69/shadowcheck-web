@@ -8,8 +8,6 @@ interface GeospatialWigleLayerVisibility {
   kml: boolean;
   fieldObservations: boolean;
   alpr: boolean;
-  agencies: boolean;
-  courthouses: boolean;
   shotspotterZones: boolean;
   shotspotterSensors: boolean;
 }
@@ -38,8 +36,6 @@ export function useGeospatialWigleResultLayers({
       kml: visible.kml,
       fieldObservations: visible.fieldObservations,
       alpr: visible.alpr,
-      agencies: visible.agencies,
-      courthouses: visible.courthouses,
       shotspotterZones: visible.shotspotterZones,
       shotspotterSensors: visible.shotspotterSensors,
     },

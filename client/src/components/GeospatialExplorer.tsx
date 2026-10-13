@@ -132,8 +132,6 @@ export default function GeospatialExplorer() {
       kml: state.showWigleKml,
       fieldObservations: state.showFieldObservations,
       alpr: state.showAlprCameras,
-      agencies: state.showAgencyOffices,
-      courthouses: state.showCourthousesPanel,
       shotspotterZones: state.showShotspotterZones,
       shotspotterSensors: state.showShotspotterSensors,
     },

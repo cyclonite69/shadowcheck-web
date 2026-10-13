@@ -7,8 +7,6 @@ import {
 } from '../../../client/src/utils/geospatial/setupPopupDrag';
 import {
   applyGeospatialLayerVisibility,
-  ensureAgencyOfficesMvtLayer,
-  ensureCourthousesMvtLayer,
   ensureGeospatialAlprMvtLayer,
   ensureGeospatialFieldDataMvtLayer,
   ensureKmlMvtLayer,
@@ -84,13 +82,11 @@ describe('Geospatial Explorer MVT layers', () => {
       ensureKmlMvtLayer,
       ensureWigleV2MvtLayer,
       ensureWigleV3MvtLayer,
-      ensureAgencyOfficesMvtLayer,
-      ensureCourthousesMvtLayer,
       ensureShotspotterMvtLayers,
     ].forEach((ensureLayer) => ensureLayer(map));
 
-    expect(sources.size).toBe(8);
-    expect(layers.size).toBe(11);
+    expect(sources.size).toBe(6);
+    expect(layers.size).toBe(9);
     expect(layers.get('geospatial-alpr-mvt-pulse')).toEqual(
       expect.objectContaining({
         type: 'circle',
@@ -155,12 +151,6 @@ describe('Geospatial Explorer MVT layers', () => {
       })
     );
     expect(layers.has('geospatial-deflock-mvt-points')).toBe(false);
-    expect(layers.get('geospatial-agencies-mvt-points')).toEqual(
-      expect.objectContaining({ paint: expect.objectContaining({ 'circle-color': '#dc2626' }) })
-    );
-    expect(layers.get('geospatial-courthouses-mvt-points')).toEqual(
-      expect.objectContaining({ paint: expect.objectContaining({ 'circle-color': '#6366f1' }) })
-    );
     expect(layers.get('geospatial-shotspotter-zone-fill')).toEqual(
       expect.objectContaining({
         type: 'fill',
@@ -209,8 +199,6 @@ describe('Geospatial Explorer MVT layers', () => {
       'geospatial-kml-mvt-points',
       'geospatial-alpr-mvt-pulse',
       'geospatial-alpr-mvt-points',
-      'geospatial-agencies-mvt-points',
-      'geospatial-courthouses-mvt-points',
       'geospatial-shotspotter-zone-fill',
       'geospatial-shotspotter-zone-line',
       'geospatial-shotspotter-sensor-points',
@@ -226,8 +214,6 @@ describe('Geospatial Explorer MVT layers', () => {
       wigleV3: true,
       kml: false,
       alpr: true,
-      agencies: true,
-      courthouses: false,
       shotspotterZones: true,
       shotspotterSensors: false,
     });
@@ -283,8 +269,6 @@ describe('Geospatial Explorer MVT layers', () => {
         wigleV3: false,
         kml: false,
         alpr: true,
-        agencies: false,
-        courthouses: false,
         shotspotterZones: false,
         shotspotterSensors: false,
       });
@@ -307,8 +291,6 @@ describe('Geospatial Explorer MVT layers', () => {
         wigleV3: false,
         kml: false,
         alpr: false,
-        agencies: false,
-        courthouses: false,
         shotspotterZones: false,
         shotspotterSensors: false,
       });
@@ -383,14 +365,14 @@ describe('Geospatial Explorer MVT layers', () => {
       popup.remove();
       expect(cleanupPopupDrag).toHaveBeenCalledWith(popup, dragState);
       detach();
-      expect(map.off).toHaveBeenCalledTimes(27);
+      expect(map.off).toHaveBeenCalledTimes(21);
       expect(handlers.some((handler) => handler.layer.includes('deflock'))).toBe(false);
     } finally {
       jest.clearAllMocks();
     }
   });
 
-  it('routes ALPR, courthouse, agency, and ShotSpotter features to their card renderers', () => {
+  it('routes ALPR and ShotSpotter features to their card renderers', () => {
     const { map, handlers } = createMapMock();
     const popup = {
       setLngLat: jest.fn().mockReturnThis(),
@@ -467,34 +449,6 @@ describe('Geospatial Explorer MVT layers', () => {
       expect(wigleV3Html).not.toContain('<details');
       expect(wigleV3Html).not.toContain('Observations');
 
-      expect(
-        click('geospatial-courthouses-mvt-points', {
-          court_name: 'Federal Courthouse',
-          building_type: 'district_court',
-          district: 'Northern District',
-          circuit: 'Ninth',
-        })
-      ).toContain('Northern District');
-      expect(
-        click('geospatial-agencies-mvt-points', {
-          agency: 'fbi',
-          name: 'Agency Office',
-          office_type: 'resident_agency',
-          address_line1: '200 E Liberty St',
-          city: 'Ann Arbor',
-          state: 'MI',
-          postal_code: '48104',
-          phone: '734-555-0100',
-          parent_office: 'Detroit',
-          website: 'https://fbi.gov',
-        })
-      ).toContain('FBI · Resident Agency');
-      const agencyHtml = (popup.setHTML as jest.Mock).mock.calls[
-        (popup.setHTML as jest.Mock).mock.calls.length - 1
-      ][0] as string;
-      expect(agencyHtml).toContain('200 E Liberty St, Ann Arbor, MI 48104');
-      expect(agencyHtml).toContain('734-555-0100');
-      expect(agencyHtml).toContain('Division of Detroit');
       expect(
         click('geospatial-shotspotter-sensor-points', {
           sensor_id: '<sensor-1>',
