@@ -246,6 +246,50 @@ Per GainSec research and Flock-You-Android `DetectionPatterns.kt`:
 - Solar-powered, 24/7 audio surveillance; no warrant required for installation in public space
 - Manufacturer ID 0x09C8 (XUNTONG) observed on Flock/Raven BLE advertisements in field
 
+### 3.6 Field deployment hypotheses: ShotSpotter / SoundThinking sensors (living section)
+
+This section documents database query results and evaluates field deployment hypotheses regarding acoustic gunshot sensor RF signatures, spatial relationships to external sensor leak records, and observed device cohorts. Every item is graded strictly as **Observed** (uninterpreted query results) or **Hypothesis** (operational interpretation subject to empirical falsification).
+
+#### Observed Findings
+
+- **[O1] Detection Method Provenance:** All 170 Tier 8 detections in `app.surveillance_detections` (`device_type = 'SHOTSPOTTER_SENSOR'`) originated from the generic SSID rule branch (`detection_method = 'ssid_pattern'`). Zero detections originated from manufacturer OUI matching or BLE telemetry.
+- **[O2] Leak Table Census & Local Coverage:** The leak inventory (`app.shotspotter_sensors`) contains 20,280 total rows, which include 1 sentinel row with latitude -9999, 1 sign-flipped longitude coordinate error, and at least 140 non-US rows (South Africa). The table contains zero rows located within the canonical Flint survey area.
+- **[O3] SSID Families & Resolved Hardware Manufacturers:** Among the 170 detections, SSID patterns partition into 73 `HOME/CAR/AUTO`, 64 `CBCI`, and 33 other generic patterns. Querying `app.radio_manufacturers` for the 70 distinct OUIs yields: Commscope (68 detections), Vantiva USA LLC / Vantiva - Connected Home (43 detections), other vendors with <5 detections each (14 detections across Casa Systems, Espressif Inc., LG Electronics, Pegatron Corporation, Samsara Networks Inc., and TP-Link Systems Inc.), and 45 detections with unresolved manufacturer prefixes.
+- **[O4] Collapsed Physical Devices & Observation Data:** Collapsing detections sharing the same 3-byte vendor OUI and exact SSID with adjacent MACs ≤ 0x10 yields 135 gateway units (or 117 unconstrained OUI+SSID pairs). Of these, 90 collapsed devices (129 distinct BSSIDs) have records in `app.wigle_v3_observations`, comprising 2,992 total observation points. Exactly 23 devices have ≥ 1 observation outside the canonical Flint survey area.
+- **[O5] Proximity Matching at Outside Sites:** Across the 23 devices with outside-Flint observations, exactly 1 device matched ≤ 150 m at two non-Flint sites (also matching at ≤ 50 m and ≤ 500 m). The observed match rate is 4.35% (1 of 23, Wilson 95% CI: [0.77%, 20.99%]).
+- **[O6] Non-Detected Control Proximity Rates:** Across a random sample of N = 1,000 non-detected fixed gateway units observed outside Flint, match rates against `app.shotspotter_sensors` are 3.90% at 150 m (39 / 1,000, Wilson 95% CI: [2.86%, 5.30%]) and 8.70% at 500 m (87 / 1,000, Wilson 95% CI: [7.10%, 10.61%]). The expected match count for n = 23 under the 150 m control rate is 0.897 units (~0.90 units).
+- **[O7] Chronological Ordering Rates:** Among dual-region entities observed both inside Flint and outside Flint:
+  - _Tier 8 Gateway Units (collapsed device level, N = 25 units, representing 30 BSSIDs):_ 18 strictly after outside observations (72.00%), 1 strictly before (4.00%), 6 interleaved (24.00%). (At the uncollapsed BSSID level, N = 30 BSSIDs: 23 strictly after [76.67%], 1 strictly before [3.33%], 6 interleaved [20.00%]).
+  - _Same-Vendor Fixed-Unit Control (N = 31 gateway units):_ 17 strictly after outside observations (54.84%), 1 strictly before (3.23%), 13 interleaved (41.94%). Fisher's exact test vs. Tier 8 units: two-tailed p = 0.268. (At BSSID level, N = 37 BSSIDs: 22 strictly after [59.46%], Fisher p = 0.192).
+  - _All-Device Fixed-Unit Control (N = 932 gateway units):_ 288 strictly after (30.90%), 53 strictly before (5.69%), 591 interleaved (63.41%). (At BSSID level, N = 954 BSSIDs: 301 strictly after [31.55%]).
+- **[O8] 5 km Geographic Proximity Rates:** Among fixed gateway units with outside-Flint observations, 4 of 23 Tier 8 units (17.39%, Wilson 95% CI: [6.98%, 37.14%]) have an observation within 5 km of a row in `app.shotspotter_sensors`, compared to 29 of 102 same-vendor fixed-unit controls (28.43%, Wilson 95% CI: [20.58%, 37.84%]). Fisher's exact test: p = 0.432.
+
+#### Deployment Hypotheses
+
+- **[H1] Disguise as Consumer / Commercial Broadband Equipment**
+  - _Statement:_ Acoustic gunshot sensors intentionally broadcast generic consumer SSIDs using commercial broadband gateway hardware to conceal their presence.
+  - _Supporting Evidence:_ Detections occur in municipal coverage territories broadcasting non-surveillance SSIDs.
+  - _Competing Explanation:_ Devices are standard residential or commercial cable broadband gateways manufactured by Commscope, Vantiva, and other OEMs, deployed by internet service providers in subscriber premises.
+  - _Falsifier:_ Physical teardown, firmware reverse engineering, or detection of acoustic sensor BLE advertisements and services (per §3.1–§3.5, which defines Raven as an acoustic gunshot detector with SoundThinking integration, listing BLE service UUIDs `0x3100`–`0x3500` and names matching `raven`, `shotspotter`, or `soundthinking`).
+  - _Status:_ **Untested.** Bluetooth/BLE advertisements were not examined for these units during wardriving passes, and the production database contains 0 Raven BLE detection rows.
+  - _Empirical Numbers:_ 0 of 170 detections match dedicated surveillance hardware; vendor distribution corresponds to commercial broadband OEMs.
+
+- **[H2] Equipment Redeployment into Flint from Other Municipal Sites**
+  - _Statement:_ Acoustic sensor hardware is transferred between municipal contract jurisdictions, appearing first in outside metropolitan areas and later in the Flint survey area.
+  - _Supporting Evidence:_ 1 device matched ≤ 150 m at two non-Flint sites prior to appearance in Flint. Among dual-region Tier 8 gateway units, 72.00% appear in Flint strictly after outside observations.
+  - _Competing Explanation:_ Commercial cable gateway refurbishment and reissue cycles (subscribers disconnect or relocate, modems are tested/wiped at regional depots, and reissued to subscribers in different markets months later) combined with survey timing asymmetry (historical nationwide wardriving in major metros preceded the 2025–2026 Flint survey passes).
+  - _Falsifier:_ Internal chain-of-custody transfer records, or physical co-location logging showing simultaneous stationary operation of the RF emitter and the acoustic hardware.
+  - _Status:_ **Untested (underpowered)** to differentiate from commercial gateway reissue and survey timing. The difference in strictly-after rates between Tier 8 units (72.00%) and same-vendor controls (54.84%) is statistically insignificant (Fisher's exact p = 0.268). Proximity match rate (4.35%, n=23) is consistent with expected background noise (~0.90 units expected).
+  - _Empirical Numbers:_ 1 matched device out of 23 outside devices (4.35% observed vs 3.90% control); 72.00% strictly-after in Tier 8 gateway units vs 54.84% in same-vendor fixed-unit control (p = 0.268).
+
+- **[H3] Geographic Concentration Near Leaked Sensors Outside Flint**
+  - _Statement:_ Detected Tier 8 devices observed outside Flint concentrate geographically near leaked ShotSpotter sensors.
+  - _Supporting Evidence:_ None.
+  - _Competing Explanation:_ General metropolitan Wi-Fi density and wardriving volume in large urban cores account for incidental proximity to street-mounted acoustic sensors.
+  - _Falsifier:_ Spatial analysis demonstrating that Tier 8 devices cluster near leaked sensors at rates significantly exceeding hardware-matched non-surveillance controls.
+  - _Status:_ **No excess observed (n=23); underpowered.** The share of Tier 8 units within 5 km of a leaked sensor (17.39%, Wilson 95% CI: [6.98%, 37.14%]) does not exceed the same-vendor fixed-unit control share (28.43%, Wilson 95% CI: [20.58%, 37.84%]), with Fisher's exact test yielding p = 0.432.
+  - _Empirical Numbers:_ 4 of 23 Tier 8 units (17.39%) vs 29 of 102 same-vendor fixed-unit controls (28.43%) within 5 km.
+
 ---
 
 ## 4. PigVision
