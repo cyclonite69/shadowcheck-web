@@ -1,4 +1,5 @@
 export const GEOSPATIAL_LAYER_IDS = {
+  home: ['home-circle-fill', 'home-circle-outline', 'home-dot', 'home-marker'],
   wigleV2: ['geospatial-wigle-v2-mvt-points'],
   wigleV3: ['geospatial-wigle-v3-mvt-points'],
   wigleKml: ['geospatial-kml-mvt-points'],
@@ -25,6 +26,7 @@ export interface GeospatialLayerOption {
 }
 
 export const GEOSPATIAL_LAYER_LABELS: Record<GeospatialLayerControlKey, string> = {
+  home: 'Home marker',
   wigleV2: 'WiGLE v2 networks',
   wigleV3: 'WiGLE v3 networks',
   wigleKml: 'KML observations',
@@ -37,6 +39,7 @@ export const GEOSPATIAL_LAYER_LABELS: Record<GeospatialLayerControlKey, string> 
 };
 
 export const GEOSPATIAL_LAYER_COLORS: Record<GeospatialLayerControlKey, string> = {
+  home: '#10b981',
   wigleV2: '#3b82f6',
   wigleV3: '#8b5cf6',
   wigleKml: '#eab308',
@@ -49,6 +52,7 @@ export const GEOSPATIAL_LAYER_COLORS: Record<GeospatialLayerControlKey, string> 
 };
 
 export const DEFAULT_GEOSPATIAL_LAYER_ORDER: GeospatialLayerControlKey[] = [
+  'home',
   'wigleV2',
   'wigleV3',
   'wigleKml',

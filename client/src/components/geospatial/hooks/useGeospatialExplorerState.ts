@@ -148,6 +148,7 @@ export const useGeospatialExplorerState = ({
     showColumnSelector,
     showCourthousesPanel,
     showAlprCameras,
+    showHome,
     showWigleV2,
     showWigleV3,
     showWigleKml,
@@ -162,6 +163,7 @@ export const useGeospatialExplorerState = ({
     toggleColumnSelector,
     toggleCourthousesPanel,
     toggleAlprCameras,
+    toggleHome,
     toggleWigleV2,
     toggleWigleV3,
     toggleWigleKml,
@@ -220,7 +222,7 @@ export const useGeospatialExplorerState = ({
     isLocked: effectiveViewportLock,
   });
 
-  useHomeLocationLayer({ mapReady, mapRef, homeLocation });
+  useHomeLocationLayer({ mapReady, mapRef, homeLocation, visible: showHome });
   useRadiusFilterLayer({ mapReady, mapRef });
   useRadiusFilterPopup({ mapReady, mapRef, mapboxRef });
 
@@ -526,6 +528,7 @@ export const useGeospatialExplorerState = ({
     showColumnSelector,
     showCourthousesPanel,
     showAlprCameras,
+    showHome,
     showWigleV2,
     showWigleV3,
     showWigleKml,
@@ -540,6 +543,7 @@ export const useGeospatialExplorerState = ({
     toggleColumnSelector,
     toggleCourthousesPanel,
     toggleAlprCameras,
+    toggleHome,
     toggleWigleV2,
     toggleWigleV3,
     toggleWigleKml,

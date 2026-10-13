@@ -44,6 +44,7 @@ jest.mock('../../../client/src/components/geospatial/media/MatchedMediaCarouselP
 
 import { useFederalCourthouses } from '../../../client/src/components/hooks/useFederalCourthouses';
 import { useMediaLocationLayers } from '../../../client/src/components/geospatial/hooks/useMediaLocationLayers';
+import { useHomeLocationLayer } from '../../../client/src/components/geospatial/hooks/useHomeLocationLayer';
 
 type CleanupCase = {
   name: string;
@@ -52,6 +53,25 @@ type CleanupCase = {
 };
 
 const cleanupCases: CleanupCase[] = [
+  {
+    name: 'home location',
+    cleanupCondition: 'mapReady=true and mapRef.current is the map',
+    mount: (mapRef, fakeMap) => {
+      React.useEffect(() => {
+        return () => {
+          fakeMap.remove();
+          mapRef.current = null;
+        };
+      }, []);
+
+      useHomeLocationLayer({
+        mapReady: true,
+        mapRef,
+        homeLocation: { center: [-84.5, 42.7], radius: 1000 },
+        visible: true,
+      });
+    },
+  },
   {
     name: 'federal courthouses',
     cleanupCondition: 'mapReady=true and mapRef.current is the map',

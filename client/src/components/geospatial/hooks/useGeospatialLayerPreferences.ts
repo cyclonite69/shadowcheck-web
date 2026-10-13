@@ -16,6 +16,7 @@ interface StoredLayerPreferences {
 }
 
 const DEFAULT_VISIBILITY: LayerVisibility = {
+  home: true,
   wigleV2: false,
   wigleV3: false,
   wigleKml: false,
@@ -28,6 +29,7 @@ const DEFAULT_VISIBILITY: LayerVisibility = {
 };
 
 const DEFAULT_OPACITY: LayerOpacity = {
+  home: 1,
   wigleV2: 1,
   wigleV3: 1,
   wigleKml: 1,

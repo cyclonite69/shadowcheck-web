@@ -288,6 +288,18 @@ export const ensureHomeLocationLayers = (
   if (!map) {
     return;
   }
+  if (typeof map.getStyle === 'function' && !map.getStyle()) {
+    return;
+  }
+  if (
+    !homeLocation ||
+    !Array.isArray(homeLocation.center) ||
+    homeLocation.center.length < 2 ||
+    !Number.isFinite(homeLocation.center[0]) ||
+    !Number.isFinite(homeLocation.center[1])
+  ) {
+    return;
+  }
 
   const visibility = visible ? 'visible' : 'none';
 

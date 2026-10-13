@@ -36,6 +36,7 @@ describe('useExplorerPanels hook', () => {
     expect(result).not.toHaveProperty('toggleAgenciesPanel');
     expect(result.showCourthousesPanel).toBe(false);
     expect(result.showAlprCameras).toBe(false);
+    expect(result.showHome).toBe(true);
     expect(result).not.toHaveProperty('showDeflockCameras');
     expect(result).not.toHaveProperty('toggleDeflockCameras');
   });
