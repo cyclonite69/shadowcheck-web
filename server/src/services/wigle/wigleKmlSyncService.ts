@@ -177,12 +177,7 @@ function isWigleQuotaError(e: any): boolean {
     return true;
   }
   const msg = String(e.message || '').toLowerCase();
-  return (
-    msg.includes('soft limit reached') ||
-    msg.includes('circuit breaker') ||
-    msg.includes('rate limit') ||
-    msg.includes('quota')
-  );
+  return msg.includes('soft limit reached') || msg.includes('rate limit') || msg.includes('quota');
 }
 
 /**

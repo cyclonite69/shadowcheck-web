@@ -77,7 +77,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
     }
   }
 
-  // Stats (profile/user, /stats, etc.): enforce soft limit and circuit breaker here so
+  // Stats (profile/user, /stats, etc.): enforce soft limit here so
   // every caller — including interactive HTTP routes — shares one counter before fetchWigle.
   if (kind === 'stats') {
     const priority = req.priority ?? 'background';

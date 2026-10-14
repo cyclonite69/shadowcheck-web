@@ -1,10 +1,5 @@
 import logger from '../logging/logger';
-import {
-  assertCanRequest,
-  recordRequest,
-  recordConsecutive429,
-  updateLedgerOutcome,
-} from './wigleRequestLedger';
+import { assertCanRequest, recordRequest, updateLedgerOutcome } from './wigleRequestLedger';
 import { hashRecord } from './wigleRequestUtils';
 
 export {};
@@ -166,7 +161,6 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
           const response = await fetchWithTimeout(url, init, timeoutMs);
 
           if (response.status === 429) {
-            recordConsecutive429();
             logger.warn(
               `[WiGLE][${endpoint}][429] rate limited | url=${url} | params=${JSON.stringify(
                 params ?? {}

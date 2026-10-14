@@ -67,24 +67,7 @@ function getQuotaStatus() {
   };
 }
 
-let consecutive429 = 0;
-let breakerOpenUntil = 0;
-
-function recordConsecutive429() {
-  consecutive429 += 1;
-  if (consecutive429 >= 5) {
-    breakerOpenUntil = Date.now() + 600000; // 10 mins
-    consecutive429 = 0;
-  }
-}
-
 function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'background') {
-  if (Date.now() < breakerOpenUntil && priority === 'background') {
-    const error: any = new Error('Global circuit breaker is OPEN for background tasks');
-    error.status = 503;
-    throw error;
-  }
-
   // No soft limit for 'detail' — WiGLE does not publish one and we have no empirical
   // basis for a number yet. The ledger continues logging all detail requests so we can
   // observe real rate-limit responses over time and set a limit based on evidence.
@@ -147,16 +130,10 @@ async function recordRequest(
   }
 }
 
-function resetCircuitBreaker() {
-  consecutive429 = 0;
-  breakerOpenUntil = 0;
-}
-
 function resetQuotaLedger() {
   requestLedger.search = [];
   requestLedger.detail = [];
   requestLedger.stats = [];
-  resetCircuitBreaker();
 }
 
 async function hydrateLedger() {
@@ -190,10 +167,6 @@ async function hydrateLedger() {
 
 if (process.env.NODE_ENV !== 'test') {
   void hydrateLedger();
-}
-
-function getCircuitBreakerStatus() {
-  return { isOpen: Date.now() < breakerOpenUntil };
 }
 
 /**
@@ -247,7 +220,4 @@ export {
   hydrateLedger,
   updateLedgerOutcome,
   resetQuotaLedger,
-  resetCircuitBreaker,
-  recordConsecutive429,
-  getCircuitBreakerStatus,
 };

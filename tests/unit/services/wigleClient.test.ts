@@ -1,9 +1,5 @@
 import { fetchWigle, resetState } from '../../../server/src/services/wigleClient';
-import {
-  getQuotaStatus,
-  resetQuotaLedger,
-  recordConsecutive429,
-} from '../../../server/src/services/wigleRequestLedger';
+import { getQuotaStatus, resetQuotaLedger } from '../../../server/src/services/wigleRequestLedger';
 import { adminQuery } from '../../../server/src/services/adminDbService';
 
 jest.mock('../../../server/src/logging/logger');
@@ -49,7 +45,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    resetQuotaLedger(); // also resets circuit breaker since the fix
+    resetQuotaLedger();
     resetState();
     global.fetch = jest.fn().mockResolvedValue(makeResponse({}, true, 200));
   });
@@ -160,36 +156,6 @@ describe('wigleClient (Deterministic Hardening)', () => {
 
     await Promise.all(requests);
     expect(global.fetch).toHaveBeenCalledTimes(4);
-  });
-
-  // ── Circuit breaker ────────────────────────────────────────────────────────
-
-  it('circuit breaker blocks background but allows interactive when open', async () => {
-    // Open the real circuit breaker (5 consecutive 429s)
-    for (let i = 0; i < 5; i++) {
-      recordConsecutive429();
-    }
-
-    const bg = fetchWigle({ kind: 'search', url: 'http://bg', priority: 'background' });
-    await expect(bg).rejects.toThrow('circuit breaker');
-
-    // Interactive is never blocked by the breaker
-    const int = await fetchWigle({ kind: 'search', url: 'http://int', priority: 'interactive' });
-    expect(int.response.status).toBe(200);
-  });
-
-  it('background requests get a delay when breaker is open (delay logic aligns with rejection)', async () => {
-    jest
-      .spyOn(require('../../../server/src/services/wigleRequestLedger'), 'getCircuitBreakerStatus')
-      .mockReturnValue({ isOpen: true });
-
-    const p1 = fetchWigle({ kind: 'stats', url: 'http://bg', priority: 'background' });
-    const p2 = fetchWigle({ kind: 'search', url: 'http://int', priority: 'interactive' });
-
-    await flushQueue();
-    await Promise.all([p1, p2]);
-
-    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   // ── Retry / backoff ────────────────────────────────────────────────────────

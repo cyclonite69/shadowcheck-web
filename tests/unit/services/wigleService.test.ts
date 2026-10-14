@@ -23,8 +23,6 @@ jest.mock('../../../server/src/services/wigleRequestLedger', () => ({
   assertCanRequest: jest.fn(),
   recordRequest: jest.fn().mockResolvedValue(null),
   updateLedgerOutcome: jest.fn(),
-  recordConsecutive429: jest.fn(),
-  getCircuitBreakerStatus: jest.fn().mockReturnValue({ isOpen: false }),
 }));
 
 jest.mock('../../../server/src/services/secretsManager', () => ({
