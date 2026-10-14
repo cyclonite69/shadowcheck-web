@@ -205,42 +205,48 @@ export const ENRICHED_CANDIDATES_SQL = `
 
       UNION ALL
 
-      -- 13. Body-worn camera officer assignment SSID: X_[initial][surname]
-      -- Pattern: X_ prefix + one letter initial + surname (letters only, no numbers/spaces).
-      -- Observed on Axon body cams assigned to officers (e.g. X_grodriguez, X_jsmith).
-      -- Confidence is STRONG — this is a highly specific naming convention not used by
-      -- consumer devices. Classified as AXON_BODY_CAMERA regardless of OUI since the
-      -- SSID pattern is the primary evidence. When a BLE service UUID is also present
-      -- on the same row, base_likelihood is boosted to 92 (UUID corroborates the SSID).
-      -- Once the UUID value is confirmed from captured devices, add it as a standalone
-      -- high-confidence tier using the service_uuid values surfaced in matched_signals.
+      -- 13. Low-confidence BWC SSID heuristic: officer assignment & operational naming (X_*)
+      -- Pattern: X_ prefix followed by officer name or operational unit identifier.
+      -- Captures both officer conventions (X_grodriguez) and unit tags (X_SPARE2, X_X2_BWC, X_K9-Forystek).
+      -- Calibrated as a low-confidence heuristic (WEAK match quality, base likelihood 35–45)
+      -- because naming conventions alone do not constitute hardware-level proof of device class.
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         'AXON_BODY_CAMERA',
-        CASE WHEN n.service IS NOT NULL AND n.service != '' THEN 92 ELSE 82 END,
-        CASE WHEN n.service IS NOT NULL AND n.service != '' THEN 'EXACT' ELSE 'STRONG' END,
+        CASE
+          WHEN n.service IS NOT NULL
+            AND '0000ffa1-0000-1000-8000-00805f9b34fb' = ANY(string_to_array(lower(n.service), ' '))
+          THEN 45
+          ELSE 35
+        END,
+        'WEAK',
         'ssid_pattern',
-        jsonb_build_object('ssid', n.ssid, 'pattern', '^X_[A-Za-z][A-Za-z]+$', 'note', 'officer_assignment_ssid', 'service_uuid', n.service), 13
+        jsonb_build_object(
+          'ssid', n.ssid,
+          'pattern', '^X_[A-Za-z0-9_-]+$',
+          'note', 'bwc_naming_heuristic_low_confidence',
+          'service_uuid', n.service
+        ), 13
       FROM app.networks n
-      WHERE n.ssid ~ '^X_[A-Za-z][A-Za-z]+$'
+      WHERE n.ssid ~ '^X_[A-Za-z0-9_-]+$'
 
       UNION ALL
 
-      -- 14. Axon body cam BLE service UUID 0xFFA1 (confirmed from captured devices).
-      -- Full UUID: 0000ffa1-0000-1000-8000-00805f9b34fb
-      -- Present on Axon BLE advertisements that don't match the X_ SSID pattern
-      -- (e.g. devices not yet assigned to an officer, or advertising under a different name).
+      -- 14. Low-confidence BWC BLE service UUID 0xFFA1 heuristic (non-X_ beacons)
+      -- Full UUID: 0000ffa1-0000-1000-8000-00805f9b34fb (unassigned 16-bit BLE identifier).
+      -- Calibrated as a low-confidence heuristic (base likelihood 30, WEAK match quality).
+      -- Excludes X_ SSIDs (already captured by Tier 13) to prevent artificial multi-indicator inflation.
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
-        'AXON_BODY_CAMERA', 88, 'EXACT', 'uuid_match',
-        jsonb_build_object('service_uuid', n.service, 'uuid_short', '0xFFA1', 'note', 'axon_ble_service'), 14
+        'AXON_BODY_CAMERA', 30, 'WEAK', 'uuid_match',
+        jsonb_build_object(
+          'service_uuid', n.service,
+          'uuid_short', '0xFFA1',
+          'note', 'unassigned_ble_service_heuristic_low_confidence'
+        ), 14
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
-        AND n.service = '0000ffa1-0000-1000-8000-00805f9b34fb'
-        AND NOT EXISTS (
-          SELECT 1 FROM app.oui_device_groups odg
-          WHERE odg.oui = LEFT(n.bssid, 8)
-            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
-            AND odg.surveillance_confidence = 'HIGH'
-        )
+        AND n.service IS NOT NULL
+        AND '0000ffa1-0000-1000-8000-00805f9b34fb' = ANY(string_to_array(lower(n.service), ' '))
+        AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z0-9_-]+$')
 
       UNION ALL
 
