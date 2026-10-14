@@ -41,6 +41,32 @@ describe('surveillanceScoring', () => {
       expect(results[0].device_type).toBe('FLOCK_SAFETY_CAMERA');
     });
 
+    it('allows canonical Flock-[hex6] and test_flck WiFi candidates to survive scoring', () => {
+      const canonicalWifi = makeCandidate({
+        bssid: '08:3A:88:64:01:61',
+        ssid: 'Flock-1a2b3c',
+        type: 'W',
+      });
+      const testFlckWifi = makeCandidate({
+        bssid: '08:3A:88:64:01:62',
+        ssid: 'test_flck',
+        type: 'W',
+      });
+      const genericWifi = makeCandidate({
+        bssid: '08:3A:88:64:01:63',
+        ssid: 'Generic-Router',
+        type: 'W',
+      });
+
+      const results = scoreSurveillanceCandidates([canonicalWifi, testFlckWifi, genericWifi]);
+
+      expect(results.map((r) => r.bssid).sort()).toEqual([
+        '08:3A:88:64:01:61',
+        '08:3A:88:64:01:62',
+      ]);
+      expect(results.every((r) => r.device_type === 'FLOCK_SAFETY_CAMERA')).toBe(true);
+    });
+
     it('penalizes weak RSSI (-92 dBm) compared to strong RSSI (-45 dBm)', () => {
       const weak = makeCandidate({ bssid: 'AA:BB:CC:01:01:01', bestlevel: -92 });
       const strong = makeCandidate({ bssid: 'AA:BB:CC:02:02:02', bestlevel: -45 });
