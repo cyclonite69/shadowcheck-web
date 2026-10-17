@@ -114,6 +114,14 @@ export function canonicalizeSurveillanceFlags(pageState: PageFilterState): PageF
   };
 }
 
+export function isSurveillanceFlagActive(
+  filters: Partial<NetworkFilters> | undefined | null,
+  enabled: Record<string, boolean> | undefined | null,
+  key: keyof NetworkFilters
+): boolean {
+  return enabled?.[key] === true && filters?.[key] === true;
+}
+
 // Forensically correct defaults - NO implicit filtering
 const defaultFilters: NetworkFilters = {
   temporalScope: TemporalScope.OBSERVATION_TIME,

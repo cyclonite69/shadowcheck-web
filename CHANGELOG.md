@@ -335,6 +335,7 @@
 - **filters:** clarify threat level vs manual tag semantics ([662bcf6](https://github.com/cyclonite69/shadowcheck-web/commit/662bcf66bdaa62da9beb8e51741ecdc0cc2678e6))
 - **filters:** clean up disabled filter values to prevent query bloat ([c1911d5](https://github.com/cyclonite69/shadowcheck-web/commit/c1911d5204f7d3a7b222a71185f9b3f2c5acc4a2))
 - **filters:** default timeframe filter off ([f99cf38](https://github.com/cyclonite69/shadowcheck-web/commit/f99cf383f83c80894eab8829bc246471673c25ed))
+- **filters:** derive surveillance checkbox state from enabled and value ([4474b9f](https://github.com/cyclonite69/shadowcheck-web/commit/4474b9f0e815a061c3ffd9feed4e27d976091149))
 - **filters:** disable qualityFilter by default to prevent 504 timeout ([11c68c5](https://github.com/cyclonite69/shadowcheck-web/commit/11c68c5cf2c17067180d0d5430b4d520478cacbf))
 - **filters:** drop false surveillance flags instead of storing them ([4c9d7a9](https://github.com/cyclonite69/shadowcheck-web/commit/4c9d7a99bd847ca89b495c5c2867e21ba7f82aa6))
 - **filters:** enforce security/threat filter consistency across api and explorer ([778e1be](https://github.com/cyclonite69/shadowcheck-web/commit/778e1be41414e40f2878f87996ae0f1669056c75)), closes [#8b5cf6](https://github.com/cyclonite69/shadowcheck-web/issues/8b5cf6) [#64748b](https://github.com/cyclonite69/shadowcheck-web/issues/64748b)

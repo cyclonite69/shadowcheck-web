@@ -5,6 +5,9 @@
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
 import { NetworkFilters, ThreatCategory } from '../../../types/filters';
+import { isSurveillanceFlagActive } from '../../../stores/filterStore';
+
+export { isSurveillanceFlagActive };
 
 interface ThreatFiltersProps {
   filters: NetworkFilters;
@@ -46,7 +49,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.flock ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'flock')}
                   onChange={(e) => onSetFilter('flock', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />
@@ -56,7 +59,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.bwc ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'bwc')}
                   onChange={(e) => onSetFilter('bwc', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />
@@ -66,7 +69,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.dashcam ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'dashcam')}
                   onChange={(e) => onSetFilter('dashcam', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />
@@ -76,7 +79,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.residential_cam ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'residential_cam')}
                   onChange={(e) => onSetFilter('residential_cam', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />
@@ -86,7 +89,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.commercial_cam ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'commercial_cam')}
                   onChange={(e) => onSetFilter('commercial_cam', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />
@@ -96,7 +99,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={filters.shotspotter ?? false}
+                  checked={isSurveillanceFlagActive(filters, enabled, 'shotspotter')}
                   onChange={(e) => onSetFilter('shotspotter', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                 />

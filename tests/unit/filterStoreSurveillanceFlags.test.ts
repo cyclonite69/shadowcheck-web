@@ -13,6 +13,7 @@ const {
   canonicalizeSurveillanceFlags,
   migrateFilterStore,
   FILTER_STORE_PERSIST_VERSION,
+  isSurveillanceFlagActive,
 } = require('../../client/src/stores/filterStore');
 const {
   adaptFiltersToPage,
@@ -455,6 +456,24 @@ describe('filterStore - surveillance flag hygiene', () => {
       expect(presets.dirtyPreset).toBeDefined();
       expect(presets.dirtyPreset.filters.bwc).toBe(false);
       expect(presets.dirtyPreset.enabled.bwc).toBe(true);
+    });
+  });
+
+  describe('isSurveillanceFlagActive pure helper', () => {
+    it('(true, true) -> true', () => {
+      expect(isSurveillanceFlagActive({ bwc: true }, { bwc: true } as any, 'bwc')).toBe(true);
+    });
+
+    it('filters.bwc true & enabled false (the chip-dismissed state) -> false', () => {
+      expect(isSurveillanceFlagActive({ bwc: true }, { bwc: false } as any, 'bwc')).toBe(false);
+    });
+
+    it('both absent -> false', () => {
+      expect(isSurveillanceFlagActive({}, {} as any, 'bwc')).toBe(false);
+    });
+
+    it('legacy (filters false, enabled true) -> false', () => {
+      expect(isSurveillanceFlagActive({ bwc: false }, { bwc: true } as any, 'bwc')).toBe(false);
     });
   });
 });
