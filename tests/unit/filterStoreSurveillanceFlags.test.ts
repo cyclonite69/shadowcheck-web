@@ -11,6 +11,8 @@ const {
   useFilterStore,
   SURVEILLANCE_FLAG_KEYS,
   canonicalizeSurveillanceFlags,
+  migrateFilterStore,
+  FILTER_STORE_PERSIST_VERSION,
 } = require('../../client/src/stores/filterStore');
 const {
   adaptFiltersToPage,
@@ -280,6 +282,50 @@ describe('filterStore - surveillance flag hygiene', () => {
       expect(enabled.bwc).toBe(false);
       expect(filters.surveillance).toBe(true);
       expect(enabled.surveillance).toBe(false);
+    });
+  });
+
+  describe('Persistence migration to v4', () => {
+    it('declares persist version 4', () => {
+      expect(FILTER_STORE_PERSIST_VERSION).toBe(4);
+    });
+
+    it('migrates a v3 persisted payload with dirty pageStates and dirty presets to clean v4 state', () => {
+      const dirtyStoredState = {
+        currentPage: 'default',
+        pageStates: {
+          default: {
+            filters: { bwc: false, surveillance: true },
+            enabled: { bwc: true, surveillance: false },
+          },
+        },
+        presets: {
+          dirtyPreset: {
+            filters: { bwc: false, surveillance: true },
+            enabled: { bwc: true, surveillance: false },
+          },
+        },
+      };
+
+      const migrated = migrateFilterStore(dirtyStoredState, 3);
+
+      expect(migrated.pageStates?.default).toBeDefined();
+      expect(Object.prototype.hasOwnProperty.call(migrated.pageStates.default.filters, 'bwc')).toBe(
+        false
+      );
+      expect('bwc' in migrated.pageStates.default.filters).toBe(false);
+      expect(migrated.pageStates.default.enabled.bwc).toBe(false);
+      expect(migrated.pageStates.default.filters.surveillance).toBe(true);
+      expect(migrated.pageStates.default.enabled.surveillance).toBe(false);
+
+      expect(migrated.presets?.dirtyPreset).toBeDefined();
+      expect(
+        Object.prototype.hasOwnProperty.call(migrated.presets.dirtyPreset.filters, 'bwc')
+      ).toBe(false);
+      expect('bwc' in migrated.presets.dirtyPreset.filters).toBe(false);
+      expect(migrated.presets.dirtyPreset.enabled.bwc).toBe(false);
+      expect(migrated.presets.dirtyPreset.filters.surveillance).toBe(true);
+      expect(migrated.presets.dirtyPreset.enabled.surveillance).toBe(false);
     });
   });
 });

@@ -254,6 +254,32 @@ const ensurePageStateRecord = (
   };
 };
 
+export const FILTER_STORE_PERSIST_VERSION = 4;
+
+export function migrateFilterStore(persistedState: any, _version: number): any {
+  if (!persistedState || typeof persistedState !== 'object') {
+    return persistedState;
+  }
+
+  const nextPageStates = Object.fromEntries(
+    Object.entries((persistedState.pageStates as Record<string, PageFilterState>) || {}).map(
+      ([page, pageState]) => [page, canonicalizeSurveillanceFlags(normalizePageState(pageState))]
+    )
+  );
+
+  const nextPresets = Object.fromEntries(
+    Object.entries((persistedState.presets as Record<string, PageFilterState>) || {}).map(
+      ([name, preset]) => [name, canonicalizeSurveillanceFlags(preset)]
+    )
+  );
+
+  return {
+    ...persistedState,
+    pageStates: nextPageStates,
+    presets: nextPresets,
+  };
+}
+
 export const useFilterStore = create<HardenedFilterStore>()(
   persist(
     (set, get) => ({
@@ -628,29 +654,14 @@ export const useFilterStore = create<HardenedFilterStore>()(
     }),
     {
       name: 'shadowcheck-filters-v2',
-      version: 3,
+      version: FILTER_STORE_PERSIST_VERSION,
       partialize: (state) => ({
         currentPage: state.currentPage,
         pageStates: state.pageStates,
         boundingBoxViewportLocks: state.boundingBoxViewportLocks,
         presets: state.presets,
       }),
-      migrate: (persistedState: any) => {
-        if (!persistedState || typeof persistedState !== 'object') {
-          return persistedState;
-        }
-
-        const nextPageStates = Object.fromEntries(
-          Object.entries((persistedState.pageStates as Record<string, PageFilterState>) || {}).map(
-            ([page, pageState]) => [page, normalizePageState(pageState)]
-          )
-        );
-
-        return {
-          ...persistedState,
-          pageStates: nextPageStates,
-        };
-      },
+      migrate: migrateFilterStore,
     }
   )
 );
