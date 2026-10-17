@@ -83,7 +83,7 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
   describe('B. Raven UUID Recognition SQL Contract', () => {
     test('Tier 21 is defined as priority 21 with RAVEN_GUNSHOT_DETECTOR and uuid_match', () => {
       const tier21Match = ENRICHED_CANDIDATES_SQL.match(
-        /-- 21\. Raven gunshot detector BLE service UUIDs[\s\S]*?(?=\),\s*obs_stats AS)/
+        /-- 21\. Raven gunshot detector BLE service UUIDs[\s\S]*?(?=(?:UNION ALL\s+-- 22|\),\s*obs_stats AS))/
       );
       expect(tier21Match).toBeDefined();
       const tier21Sql = tier21Match![0];
@@ -428,6 +428,51 @@ describe('Phase 2 Flock Fingerprint Extensions', () => {
       const results = scoreSurveillanceCandidates([bleFlock]);
       expect(results).toHaveLength(1);
       expect(results[0].bssid).toBe('B4:1E:52:00:00:04');
+    });
+  });
+
+  describe('E. Dashcam, Residential Camera, and Commercial Camera SQL Contracts', () => {
+    test('Tier 19 (Dashcam) pattern covers major dashcam brands and excludes false positives', () => {
+      const tier19Match = ENRICHED_CANDIDATES_SQL.match(
+        /-- 19\. Dashcam SSID patterns[\s\S]*?(?=UNION ALL\s+-- 20)/
+      );
+      expect(tier19Match).toBeDefined();
+      const sql = tier19Match![0];
+      expect(sql).toContain("'DASHCAM'");
+      expect(sql).toContain('19');
+      expect(sql).toContain('vantrue');
+      expect(sql).toContain('rove');
+      expect(sql).toContain('redtiger');
+      expect(sql).toContain('ddpai');
+      expect(sql).toContain('provider|provision|grover|improvement|yukon');
+    });
+
+    test('Tier 20 (Residential Camera) identifies consumer cameras and excludes non-camera devices', () => {
+      const tier20Match = ENRICHED_CANDIDATES_SQL.match(
+        /-- 20\. Residential\/consumer camera OUI[\s\S]*?(?=UNION ALL\s+-- 21)/
+      );
+      expect(tier20Match).toBeDefined();
+      const sql = tier20Match![0];
+      expect(sql).toContain("'RESIDENTIAL_CAMERA'");
+      expect(sql).toContain('20');
+      expect(sql).toContain('ring setup');
+      expect(sql).toContain('blink');
+      expect(sql).toContain('echo|firetv|kindle|router|guest|mesh');
+    });
+
+    test('Tier 22 (Commercial Camera) is defined with priority 22 and matches commercial CCTV/NVR vendors', () => {
+      const tier22Match = ENRICHED_CANDIDATES_SQL.match(
+        /-- 22\. Commercial\/enterprise security camera match[\s\S]*?(?=\),\s*obs_stats AS)/
+      );
+      expect(tier22Match).toBeDefined();
+      const sql = tier22Match![0];
+      expect(sql).toContain("'COMMERCIAL_CAMERA'");
+      expect(sql).toContain('22');
+      expect(sql).toContain('Axis Communications');
+      expect(sql).toContain('Hikvision');
+      expect(sql).toContain('Dahua');
+      expect(sql).toContain('Verkada');
+      expect(sql).toContain('Reolink');
     });
   });
 });

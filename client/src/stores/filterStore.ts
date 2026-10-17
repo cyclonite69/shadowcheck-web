@@ -144,6 +144,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   bwc: false,
   dashcam: false,
   residential_cam: false,
+  commercial_cam: false,
   flock: false,
 };
 

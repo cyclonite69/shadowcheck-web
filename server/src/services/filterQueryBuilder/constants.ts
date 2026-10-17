@@ -71,6 +71,7 @@ export const FILTER_KEYS = [
   'bwc',
   'dashcam',
   'residential_cam',
+  'commercial_cam',
   'flock',
   'deviceClass',
 ] as const;
@@ -155,6 +156,7 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'bwc',
   'dashcam',
   'residential_cam',
+  'commercial_cam',
   'flock',
   // deviceClass is network-only: filter uses EXISTS subqueries against
   // surveillance_detections + oui_device_groups, both joinable from ne.bssid
@@ -162,7 +164,7 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
 ]);
 
 export interface SurveillanceCategoryDefinition {
-  key: 'shotspotter' | 'bwc' | 'dashcam' | 'residential_cam' | 'flock';
+  key: 'shotspotter' | 'bwc' | 'dashcam' | 'residential_cam' | 'commercial_cam' | 'flock';
   types: readonly string[];
 }
 
@@ -182,6 +184,10 @@ export const SURVEILLANCE_CATEGORIES: readonly SurveillanceCategoryDefinition[] 
   {
     key: 'residential_cam',
     types: ['RESIDENTIAL_CAMERA'],
+  },
+  {
+    key: 'commercial_cam',
+    types: ['COMMERCIAL_CAMERA'],
   },
   {
     key: 'flock',

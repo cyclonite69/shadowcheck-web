@@ -91,6 +91,7 @@ export interface NetworkFilters {
   bwc?: boolean;
   dashcam?: boolean;
   residential_cam?: boolean;
+  commercial_cam?: boolean;
   flock?: boolean;
 }
 

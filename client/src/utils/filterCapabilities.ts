@@ -113,6 +113,7 @@ export function createFullCapabilities(): PageFilterCapabilities {
       bwc: true,
       dashcam: true,
       residential_cam: true,
+      commercial_cam: true,
     },
   };
 }

@@ -83,6 +83,7 @@ describe('buildNetworkWhere — surveillance sub-filters', () => {
   test.each([
     ['dashcam', 'DASHCAM'],
     ['residential_cam', 'RESIDENTIAL_CAMERA'],
+    ['commercial_cam', 'COMMERCIAL_CAMERA'],
   ])(
     '%s filter targets only its device type and excludes false positives',
     (filter, deviceType) => {
@@ -153,6 +154,7 @@ describe('buildFastPathSupplementalPredicates — surveillance sub-filters', () 
   test.each([
     ['dashcam', 'DASHCAM'],
     ['residential_cam', 'RESIDENTIAL_CAMERA'],
+    ['commercial_cam', 'COMMERCIAL_CAMERA'],
   ])('fast path %s filter targets only its device type', (filter, deviceType) => {
     const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
     const where = buildFastPathSupplementalPredicates(ctx, {});

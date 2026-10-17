@@ -362,6 +362,7 @@ const runSurveillanceScanJob = async (
           WHEN dt IN ('AXON_BODY_CAMERA','MOTOROLA_BWC','AXON_SIGNAL_PERIPHERAL','BT_IMAGING_DEVICE') THEN '["surveillance","bwc"]'::jsonb
           WHEN dt = 'DASHCAM' THEN '["surveillance","dashcam"]'::jsonb
           WHEN dt = 'RESIDENTIAL_CAMERA' THEN '["surveillance","residential_cam"]'::jsonb
+          WHEN dt = 'COMMERCIAL_CAMERA' THEN '["surveillance","commercial_cam"]'::jsonb
           WHEN dt IN ('FLOCK_SAFETY_CAMERA','RAVEN_GUNSHOT_DETECTOR','FS_EXT_BATTERY') THEN '["surveillance","flock"]'::jsonb
           ELSE '["surveillance"]'::jsonb
         END,

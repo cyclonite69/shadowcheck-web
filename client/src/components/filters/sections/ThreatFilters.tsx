@@ -86,6 +86,16 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
+                  checked={filters.commercial_cam ?? false}
+                  onChange={(e) => onSetFilter('commercial_cam', e.target.checked)}
+                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                />
+                <span className={`${listItemTextClass} text-slate-300`}>Commercial Camera</span>
+              </label>
+
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
                   checked={filters.shotspotter ?? false}
                   onChange={(e) => onSetFilter('shotspotter', e.target.checked)}
                   className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"

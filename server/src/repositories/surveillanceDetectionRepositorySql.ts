@@ -320,25 +320,40 @@ export const ENRICHED_CANDIDATES_SQL = `
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         'DASHCAM', 72, 'STRONG', 'ssid_pattern',
         jsonb_build_object('ssid', n.ssid, 'pattern',
-          '^(Vantrue|Nextbase|Viofo|BlackVue|70mai)'), 19
+          '(^|[_-]|[[:space:]])(dashcam|cardv|carcam|car_camera|vantrue|blackvue|70mai|thinkware|drivecam|garmin.*dash|rexing|rove|redtiger|wolfbox|fitcam|chortau|kingslim|azdome|papago|apeman|hidvr|yicarcam|ddpai|viofo|nextbase)'), 19
       FROM app.networks n
-      WHERE n.ssid ~* '^(Vantrue|Nextbase|Viofo|BlackVue|70mai)'
+      WHERE (
+        n.ssid ~* '(^|[_-]|[[:space:]])(dashcam|cardv|carcam|car_camera|vantrue|blackvue|70mai|thinkware|drivecam|garmin.*dash|rexing|rove|redtiger|wolfbox|fitcam|chortau|kingslim|azdome|papago|apeman|hidvr|yicarcam|ddpai|viofo|nextbase)'
+        OR n.ssid ~* '^dashcam'
+      )
+      AND n.ssid !~* '(provider|provision|grover|improvement|yukon)'
 
       UNION ALL
 
-      -- 20. Residential/consumer camera OUI match. Manufacturer reference
-      -- data is used as identity context; this is not a BWC classification.
+      -- 20. Residential/consumer camera OUI and SSID match. Manufacturer reference
+      -- data and camera-specific naming heuristics identify consumer cameras while
+      -- strictly excluding consumer routers, phones, and smart home speakers.
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
-        'RESIDENTIAL_CAMERA', 72, 'STRONG', 'manufacturer_oui_match',
-        jsonb_build_object('oui', LEFT(n.bssid, 8), 'manufacturer', rm.manufacturer), 20
+        'RESIDENTIAL_CAMERA', 72, 'STRONG',
+        CASE
+          WHEN n.ssid ~* '(^ring setup|^ring [0-9a-f]{2}$|^ring-[0-9]{6}$|^blink[-_]|blink camera|^arlo_vmb_|^nest cam|^nestcam|^(kasa|tapo)_cam_|^wzap[0-9]+$|^wyze_hub|^eufycam|^wifi_camera_|^ai_cam_)'
+          THEN 'ssid_pattern'
+          ELSE 'manufacturer_oui_match'
+        END,
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'ssid', n.ssid, 'manufacturer', rm.manufacturer), 20
       FROM app.networks n
-      JOIN app.radio_manufacturers rm
+      LEFT JOIN app.radio_manufacturers rm
         ON UPPER(rm.oui) = REPLACE(LEFT(UPPER(n.bssid), 8), ':', '')
-      WHERE rm.manufacturer ILIKE ANY (ARRAY[
-        '%Ring%', '%Amazon Technologies%', '%Nest%', '%Google%',
-        '%Arlo%', '%Netgear%', '%Wyze%', '%Eufy%', '%Anker Innovations%',
-        '%SimpliSafe%'
-      ])
+      WHERE (
+        n.ssid ~* '(^ring setup|^ring [0-9a-f]{2}$|^ring-[0-9]{6}$|^blink[-_]|blink camera|^arlo_vmb_|^nest cam|^nestcam|^(kasa|tapo)_cam_|^wzap[0-9]+$|^wyze_hub|^eufycam|^wifi_camera_|^ai_cam_)'
+        OR (
+          rm.manufacturer ILIKE ANY (ARRAY[
+            '%Ring LLC%', '%Ring Solutions%', '%Arlo Technology%', '%Wyze Labs%',
+            '%Nest Labs%', '%SimpliSafe%', '%Blink By Amazon%'
+          ])
+          AND (n.ssid IS NULL OR n.ssid !~* '(echo|firetv|kindle|router|guest|mesh)')
+        )
+      )
 
       UNION ALL
 
@@ -414,6 +429,30 @@ export const ENRICHED_CANDIDATES_SQL = `
             AND n.service ~* '(^|[[:space:]])00001819-0000-1000-8000-00805f9b34fb([[:space:]]|$)'
           )
         )
+
+      UNION ALL
+
+      -- 22. Commercial/enterprise security camera match (OUI and CCTV/NVR patterns)
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'COMMERCIAL_CAMERA', 75, 'STRONG',
+        CASE
+          WHEN n.ssid ~* '(^reolink|^nvr[0-9a-f]{12}|^pv_dvr_|^axis[_-]|^hikvision|^dahua|^verkada|^amcrest|^lorex)'
+          THEN 'ssid_pattern'
+          ELSE 'manufacturer_oui_match'
+        END,
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'ssid', n.ssid, 'manufacturer', rm.manufacturer), 22
+      FROM app.networks n
+      LEFT JOIN app.radio_manufacturers rm
+        ON UPPER(rm.oui) = REPLACE(LEFT(UPPER(n.bssid), 8), ':', '')
+      WHERE (
+        rm.manufacturer ILIKE ANY (ARRAY[
+          '%Axis Communications%', '%Hanwha%', '%Samsung Techwin%', '%Hikvision%',
+          '%Dahua%', '%Verkada%', '%Avigilon%', '%Bosch Security%', '%Pelco%',
+          '%Mobotix%', '%Vivotek%', '%Flir Systems%', '%Uniview%', '%Lorex%',
+          '%Reolink%', '%Amcrest%', '%Pro-Vision%', '%Night Owl%', '%Juan Intelligent%'
+        ])
+        OR n.ssid ~* '(^reolink|^nvr[0-9a-f]{12}|^pv_dvr_|^axis[_-]|^hikvision|^dahua|^verkada|^amcrest|^lorex)'
+      )
 
     ),
     obs_stats AS (

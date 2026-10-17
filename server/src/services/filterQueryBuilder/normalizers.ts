@@ -248,6 +248,7 @@ const normalizeFilters = (filters: unknown): Filters => {
   normalized.bwc = toBooleanOrUndefined(source.bwc);
   normalized.dashcam = toBooleanOrUndefined(source.dashcam);
   normalized.residential_cam = toBooleanOrUndefined(source.residential_cam);
+  normalized.commercial_cam = toBooleanOrUndefined(source.commercial_cam);
   normalized.flock = toBooleanOrUndefined(source.flock);
 
   return normalized;

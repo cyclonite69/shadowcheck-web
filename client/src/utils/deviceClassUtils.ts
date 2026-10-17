@@ -14,6 +14,7 @@ const DEVICE_CLASS_LABELS: Record<string, string> = {
   BT_IMAGING_DEVICE: 'BT Imaging Device',
   DASHCAM: 'Dashcam',
   RESIDENTIAL_CAMERA: 'Residential Camera',
+  COMMERCIAL_CAMERA: 'Commercial Camera',
   RAVEN_GUNSHOT_DETECTOR: 'Raven Gunshot Detector',
   L3HARRIS_STINGRAY: 'L3Harris StingRay',
   RAYTHEON_ESYSTEMS: 'Raytheon E-Systems',

@@ -221,6 +221,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     ['shotspotter', 'SHOTSPOTTER_SENSOR'],
     ['dashcam', 'DASHCAM'],
     ['residential_cam', 'RESIDENTIAL_CAMERA'],
+    ['commercial_cam', 'COMMERCIAL_CAMERA'],
     ['flock', 'FLOCK_SAFETY_CAMERA'],
   ])('%s uses the MV fast path and keeps its detection predicate', (filter, deviceType) => {
     const result = new UniversalFilterQueryBuilder(

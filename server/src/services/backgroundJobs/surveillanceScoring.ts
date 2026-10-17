@@ -17,6 +17,7 @@ const IMPACT_FACTORS: Record<string, number> = {
   DEI_BWC: 1.0,
   DASHCAM: 1.0,
   RESIDENTIAL_CAMERA: 0.8,
+  COMMERCIAL_CAMERA: 0.9,
 };
 
 // --- Match quality bonuses (§5.2) ---
@@ -215,7 +216,7 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
     }
 
     const isStationary = Number(best.unique_positions) === 1 && (obsCount > 3 || durationSec > 300);
-    if (isStationary && deviceType !== 'RESIDENTIAL_CAMERA') {
+    if (isStationary && deviceType !== 'RESIDENTIAL_CAMERA' && deviceType !== 'COMMERCIAL_CAMERA') {
       adjustments.push({ factor: 'stationary_signature_penalty', value: -0.6 });
     }
 
