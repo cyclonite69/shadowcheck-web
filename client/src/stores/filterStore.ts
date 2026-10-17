@@ -9,7 +9,7 @@ import { NetworkFilters, FilterState, TemporalScope } from '../types/filters';
 import { logWarn } from '../logging/clientLogger';
 import { buildFilterStateParams, parseFilterStateParams } from '../utils/filterUrlState';
 
-interface PageFilterState {
+export interface PageFilterState {
   filters: NetworkFilters;
   enabled: Record<keyof NetworkFilters, boolean>;
 }
@@ -69,6 +69,50 @@ export const SURVEILLANCE_FLAG_KEYS = [
   'commercial_cam',
   'flock',
 ] as const;
+
+export function canonicalizeSurveillanceFlags(pageState: PageFilterState): PageFilterState {
+  if (!pageState || !pageState.filters || !pageState.enabled) {
+    return pageState;
+  }
+
+  let filtersChanged = false;
+  let enabledChanged = false;
+
+  const nextFilters: NetworkFilters = { ...pageState.filters };
+  const nextEnabled: Record<keyof NetworkFilters, boolean> = { ...pageState.enabled };
+
+  for (const k of SURVEILLANCE_FLAG_KEYS) {
+    const hasFilterProp = Object.prototype.hasOwnProperty.call(pageState.filters, k);
+    const filterVal = pageState.filters[k];
+    const currEnabled = pageState.enabled[k];
+
+    if (filterVal === true) {
+      const targetEnabled = currEnabled === true;
+      if (currEnabled !== targetEnabled) {
+        nextEnabled[k] = targetEnabled;
+        enabledChanged = true;
+      }
+    } else {
+      if (hasFilterProp) {
+        delete nextFilters[k];
+        filtersChanged = true;
+      }
+      if (currEnabled) {
+        nextEnabled[k] = false;
+        enabledChanged = true;
+      }
+    }
+  }
+
+  if (!filtersChanged && !enabledChanged) {
+    return pageState;
+  }
+
+  return {
+    filters: filtersChanged ? nextFilters : pageState.filters,
+    enabled: enabledChanged ? nextEnabled : pageState.enabled,
+  };
+}
 
 // Forensically correct defaults - NO implicit filtering
 const defaultFilters: NetworkFilters = {
@@ -401,12 +445,16 @@ export const useFilterStore = create<HardenedFilterStore>()(
         const { presets, currentPage, pageStates } = get();
         const preset = presets[name];
         if (preset) {
+          const canonicalized = canonicalizeSurveillanceFlags({
+            filters: preset.filters,
+            enabled: preset.enabled,
+          });
           set({
             pageStates: {
               ...pageStates,
               [currentPage]: {
-                filters: preset.filters,
-                enabled: preset.enabled,
+                filters: canonicalized.filters,
+                enabled: canonicalized.enabled,
               },
             },
           });
@@ -429,13 +477,17 @@ export const useFilterStore = create<HardenedFilterStore>()(
       setFilterState: (state) => {
         const validationErrors = get().validateFilters(state.filters, state.enabled);
         if (validationErrors.length === 0) {
+          const canonicalized = canonicalizeSurveillanceFlags({
+            filters: state.filters,
+            enabled: state.enabled,
+          });
           const { currentPage, pageStates } = get();
           set({
             pageStates: {
               ...pageStates,
               [currentPage]: {
-                filters: state.filters,
-                enabled: state.enabled,
+                filters: canonicalized.filters,
+                enabled: canonicalized.enabled,
               },
             },
           });
@@ -460,12 +512,16 @@ export const useFilterStore = create<HardenedFilterStore>()(
         }
         try {
           const { currentPage, pageStates } = get();
+          const canonicalized = canonicalizeSurveillanceFlags({
+            filters: { ...defaultFilters, ...parsedState.filters },
+            enabled: { ...defaultEnabled, ...parsedState.enabled },
+          });
           set({
             pageStates: {
               ...pageStates,
               [currentPage]: {
-                filters: { ...defaultFilters, ...parsedState.filters },
-                enabled: { ...defaultEnabled, ...parsedState.enabled },
+                filters: canonicalized.filters,
+                enabled: canonicalized.enabled,
               },
             },
           });

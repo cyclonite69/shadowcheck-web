@@ -331,6 +331,7 @@
 - **filters:** align threat category and score filter semantics ([bcc3580](https://github.com/cyclonite69/shadowcheck-web/commit/bcc35804694cfd7677c49e78d9345ce5c1569ed8))
 - **filters:** allow explicit ignored tag search for unignore workflow ([0a3db96](https://github.com/cyclonite69/shadowcheck-web/commit/0a3db96bb193ca3a0fb11ae04f90301f31328228))
 - **filters:** audit encryption normalization ([67437c1](https://github.com/cyclonite69/shadowcheck-web/commit/67437c1c32bb4b2d8d51ca5d94a4d5fcc9bfb35f))
+- **filters:** canonicalize surveillance flags on preset, URL, and state ingress ([b0ac976](https://github.com/cyclonite69/shadowcheck-web/commit/b0ac976651babf180e71473c928300fd22d70246))
 - **filters:** clarify threat level vs manual tag semantics ([662bcf6](https://github.com/cyclonite69/shadowcheck-web/commit/662bcf66bdaa62da9beb8e51741ecdc0cc2678e6))
 - **filters:** clean up disabled filter values to prevent query bloat ([c1911d5](https://github.com/cyclonite69/shadowcheck-web/commit/c1911d5204f7d3a7b222a71185f9b3f2c5acc4a2))
 - **filters:** default timeframe filter off ([f99cf38](https://github.com/cyclonite69/shadowcheck-web/commit/f99cf383f83c80894eab8829bc246471673c25ed))

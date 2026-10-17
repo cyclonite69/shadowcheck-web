@@ -7,7 +7,11 @@ jest.mock('../../client/src/logging/clientLogger', () => ({
 
 export {};
 
-const { useFilterStore, SURVEILLANCE_FLAG_KEYS } = require('../../client/src/stores/filterStore');
+const {
+  useFilterStore,
+  SURVEILLANCE_FLAG_KEYS,
+  canonicalizeSurveillanceFlags,
+} = require('../../client/src/stores/filterStore');
 const {
   adaptFiltersToPage,
   PAGE_CAPABILITIES,
@@ -135,6 +139,145 @@ describe('filterStore - surveillance flag hygiene', () => {
       store.toggleFilter('surveillance');
       filters = useFilterStore.getState().getCurrentFilters();
       enabled = useFilterStore.getState().getCurrentEnabled();
+      expect(filters.surveillance).toBe(true);
+      expect(enabled.surveillance).toBe(false);
+    });
+  });
+
+  describe('canonicalizeSurveillanceFlags pure function', () => {
+    it('cleans legacy {filters:{bwc:false}, enabled:{bwc:true}} to bwc absent and enabled false', () => {
+      const dirty = {
+        filters: { bwc: false, qualityFilter: 'all' },
+        enabled: { bwc: true, qualityFilter: false },
+      };
+      const result = canonicalizeSurveillanceFlags(dirty as any);
+
+      expect(Object.prototype.hasOwnProperty.call(result.filters, 'bwc')).toBe(false);
+      expect('bwc' in result.filters).toBe(false);
+      expect(result.enabled.bwc).toBe(false);
+      expect(result.filters.qualityFilter).toBe('all');
+    });
+
+    it('leaves clean active state unchanged', () => {
+      const cleanActive = {
+        filters: { bwc: true, shotspotter: true },
+        enabled: { bwc: true, shotspotter: true },
+      };
+      const result = canonicalizeSurveillanceFlags(cleanActive as any);
+
+      expect(result.filters.bwc).toBe(true);
+      expect(result.filters.shotspotter).toBe(true);
+      expect(result.enabled.bwc).toBe(true);
+      expect(result.enabled.shotspotter).toBe(true);
+      expect(result).toBe(cleanActive);
+    });
+
+    it('preserves toggled-off umbrella {surveillance:true} with enabled false exactly', () => {
+      const umbrella = {
+        filters: { surveillance: true },
+        enabled: { surveillance: false },
+      };
+      const result = canonicalizeSurveillanceFlags(umbrella as any);
+
+      expect(result.filters.surveillance).toBe(true);
+      expect(result.enabled.surveillance).toBe(false);
+      expect(result).toBe(umbrella);
+    });
+
+    it('drops garbage ("x", 1, null) in filters', () => {
+      const garbage = {
+        filters: {
+          bwc: 'x' as any,
+          dashcam: 1 as any,
+          flock: null as any,
+        },
+        enabled: {
+          bwc: true,
+          dashcam: true,
+          flock: true,
+        },
+      };
+      const result = canonicalizeSurveillanceFlags(garbage as any);
+
+      expect(Object.prototype.hasOwnProperty.call(result.filters, 'bwc')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(result.filters, 'dashcam')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(result.filters, 'flock')).toBe(false);
+      expect(result.enabled.bwc).toBe(false);
+      expect(result.enabled.dashcam).toBe(false);
+      expect(result.enabled.flock).toBe(false);
+    });
+
+    it('preserves object identity when already clean', () => {
+      const clean = {
+        filters: { timeframe: { type: 'relative', relativeWindow: '30d' } },
+        enabled: { timeframe: true },
+      };
+      expect(canonicalizeSurveillanceFlags(clean as any)).toBe(clean);
+    });
+
+    it('never mutates input objects', () => {
+      const frozenInput = Object.freeze({
+        filters: Object.freeze({ bwc: false, qualityFilter: 'all' }),
+        enabled: Object.freeze({ bwc: true, qualityFilter: false }),
+      });
+
+      expect(() => canonicalizeSurveillanceFlags(frozenInput as any)).not.toThrow();
+      expect(frozenInput.filters.bwc).toBe(false);
+      expect(frozenInput.enabled.bwc).toBe(true);
+    });
+  });
+
+  describe('Ingress paths canonicalization', () => {
+    it('loadPreset canonicalizes dirty presets on load', () => {
+      useFilterStore.setState({
+        presets: {
+          dirtyPreset: {
+            filters: { bwc: false, surveillance: true } as any,
+            enabled: { bwc: true, surveillance: false } as any,
+          },
+        },
+      });
+
+      useFilterStore.getState().loadPreset('dirtyPreset');
+      const filters = useFilterStore.getState().getCurrentFilters();
+      const enabled = useFilterStore.getState().getCurrentEnabled();
+
+      expect(Object.prototype.hasOwnProperty.call(filters, 'bwc')).toBe(false);
+      expect('bwc' in filters).toBe(false);
+      expect(enabled.bwc).toBe(false);
+      expect(filters.surveillance).toBe(true);
+      expect(enabled.surveillance).toBe(false);
+    });
+
+    it('setFromURLParams canonicalizes dirty URL filter params', () => {
+      const params = new URLSearchParams();
+      params.set('filters', JSON.stringify({ bwc: false, surveillance: true }));
+      params.set('enabled', JSON.stringify({ bwc: true, surveillance: false }));
+
+      useFilterStore.getState().setFromURLParams(params);
+      const filters = useFilterStore.getState().getCurrentFilters();
+      const enabled = useFilterStore.getState().getCurrentEnabled();
+
+      expect(Object.prototype.hasOwnProperty.call(filters, 'bwc')).toBe(false);
+      expect('bwc' in filters).toBe(false);
+      expect(enabled.bwc).toBe(false);
+      expect(filters.surveillance).toBe(true);
+      expect(enabled.surveillance).toBe(false);
+    });
+
+    it('setFilterState canonicalizes dirty state input', () => {
+      const dirtyState = {
+        filters: { bwc: false, surveillance: true } as any,
+        enabled: { bwc: true, surveillance: false } as any,
+      };
+
+      useFilterStore.getState().setFilterState(dirtyState);
+      const filters = useFilterStore.getState().getCurrentFilters();
+      const enabled = useFilterStore.getState().getCurrentEnabled();
+
+      expect(Object.prototype.hasOwnProperty.call(filters, 'bwc')).toBe(false);
+      expect('bwc' in filters).toBe(false);
+      expect(enabled.bwc).toBe(false);
       expect(filters.surveillance).toBe(true);
       expect(enabled.surveillance).toBe(false);
     });
