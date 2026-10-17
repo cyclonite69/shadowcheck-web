@@ -32,7 +32,7 @@ describe('buildNetworkWhere — surveillance sub-filters', () => {
     expect(clause).toContain('sd.bssid = ne.bssid');
     expect(clause).toContain('MOTOROLA_BWC');
     expect(clause).toContain('AXON_SIGNAL_PERIPHERAL');
-    expect(clause).toContain('DEI_BWC');
+    expect(clause).not.toContain('DEI_BWC');
     expect(clause).toContain('BT_IMAGING_DEVICE');
     expect(ctx.getAppliedFilters().map((f) => f.field)).toContain('bwc');
   });
@@ -145,7 +145,7 @@ describe('buildFastPathSupplementalPredicates — surveillance sub-filters', () 
     expect(clause).toContain('EXISTS');
     expect(clause).toContain('sd.bssid = ne.bssid');
     expect(clause).toContain('MOTOROLA_BWC');
-    expect(clause).toContain('DEI_BWC');
+    expect(clause).not.toContain('DEI_BWC');
     expect(clause).toContain('BT_IMAGING_DEVICE');
     expect(ctx.getAppliedFilters().map((f) => f.field)).toContain('bwc');
   });

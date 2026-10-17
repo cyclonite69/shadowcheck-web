@@ -70,7 +70,6 @@ describe('runSurveillanceScanJob — tag CASE assignment', () => {
     'AXON_BODY_CAMERA',
     'MOTOROLA_BWC',
     'AXON_SIGNAL_PERIPHERAL',
-    'DEI_BWC',
     'BT_IMAGING_DEVICE',
   ];
   for (const dt of bwcTypes) {
@@ -82,6 +81,14 @@ describe('runSurveillanceScanJob — tag CASE assignment', () => {
       expect(sql).toContain('"surveillance"');
     });
   }
+
+  test('DEI_BWC → falls through to ELSE ["surveillance"] without "bwc"', async () => {
+    mockScoreSurveillanceCandidates.mockReturnValue(makeScored('DEI_BWC'));
+    await runSurveillanceScanJob();
+    const sql = await getTagSql();
+    expect(sql).not.toMatch(/WHEN dt IN \([^)]*DEI_BWC[^)]*\) THEN '\["surveillance","bwc"\]'/);
+    expect(sql).toContain('ELSE \'["surveillance"]\'::jsonb');
+  });
 
   test('SHOTSPOTTER_SENSOR → tags include "shotspotter"', async () => {
     mockScoreSurveillanceCandidates.mockReturnValue(makeScored('SHOTSPOTTER_SENSOR'));
@@ -115,7 +122,7 @@ describe('runSurveillanceScanJob — tag CASE assignment', () => {
     const sql = await getTagSql();
     expect(sql).toContain('FLOCK_SAFETY_CAMERA');
     expect(sql).toContain('AXON_BODY_CAMERA');
-    expect(sql).toContain('DEI_BWC');
+    expect(sql).toContain('AXON_SIGNAL_PERIPHERAL');
     expect(sql).toContain('BT_IMAGING_DEVICE');
     expect(sql).toContain('SHOTSPOTTER_SENSOR');
   });

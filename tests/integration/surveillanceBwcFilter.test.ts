@@ -33,7 +33,6 @@ describeIfIntegration('BWC filter integration', () => {
           'AXON_BODY_CAMERA',
           'MOTOROLA_BWC',
           'AXON_SIGNAL_PERIPHERAL',
-          'DEI_BWC',
           'BT_IMAGING_DEVICE'
         )
       ORDER BY sd.bssid

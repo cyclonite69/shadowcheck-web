@@ -173,13 +173,7 @@ export const SURVEILLANCE_CATEGORIES: readonly SurveillanceCategoryDefinition[] 
   },
   {
     key: 'bwc',
-    types: [
-      'AXON_BODY_CAMERA',
-      'MOTOROLA_BWC',
-      'AXON_SIGNAL_PERIPHERAL',
-      'DEI_BWC',
-      'BT_IMAGING_DEVICE',
-    ],
+    types: ['AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'BT_IMAGING_DEVICE'],
   },
   {
     key: 'dashcam',

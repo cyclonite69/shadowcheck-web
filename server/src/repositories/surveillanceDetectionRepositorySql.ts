@@ -158,6 +158,7 @@ export const ENRICHED_CANDIDATES_SQL = `
       WHERE odg.surveillance_type = 'AXON_BODY_CAMERA'
         AND odg.surveillance_confidence = 'HIGH'
         AND LEFT(n.bssid, 8) NOT IN ('70:F7:54', 'B8:13:32', '54:78:C9', '08:FB:EA')
+        AND (n.mfgrid IS NULL OR n.mfgrid != 845)
 
       UNION ALL
 
@@ -179,29 +180,17 @@ export const ENRICHED_CANDIDATES_SQL = `
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
         AND n.mfgrid = 845
-        AND NOT EXISTS (
-          SELECT 1 FROM app.oui_device_groups odg
-          WHERE odg.oui = LEFT(n.bssid, 8)
-            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
-            AND odg.surveillance_confidence = 'HIGH'
-        )
 
       UNION ALL
 
       -- 12. Axon Signal BLE name patterns (^axon, ^taser, ^signal)
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         'AXON_SIGNAL_PERIPHERAL', 80, 'STRONG', 'ble_name_pattern',
-        jsonb_build_object('ssid', n.ssid, 'pattern', '^(axon|taser|signal)'), 12
+        jsonb_build_object('ssid', n.ssid, 'pattern', '^(axon[_-]|taser[_-]|axon[[:space:]]|taser[[:space:]]|signal_sidearm|signal_unit)'), 12
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
-        AND n.ssid ~* '^(axon|taser|signal)'
+        AND n.ssid ~* '^(axon[_-]|taser[_-]|axon[[:space:]]|taser[[:space:]]|signal_sidearm|signal_unit)'
         AND (n.mfgrid IS NULL OR n.mfgrid != 845)
-        AND NOT EXISTS (
-          SELECT 1 FROM app.oui_device_groups odg
-          WHERE odg.oui = LEFT(n.bssid, 8)
-            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
-            AND odg.surveillance_confidence = 'HIGH'
-        )
 
       UNION ALL
 
@@ -268,21 +257,23 @@ export const ENRICHED_CANDIDATES_SQL = `
         AND odg.surveillance_type = 'AXON_BODY_CAMERA'
         AND odg.surveillance_confidence = 'HIGH'
         AND LEFT(n.bssid, 8) NOT IN ('70:F7:54', 'B8:13:32', '54:78:C9', '08:FB:EA')
-        AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z][A-Za-z]+$')
+        AND (n.mfgrid IS NULL OR n.mfgrid != 845)
+        AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z0-9_-]+$')
 
       UNION ALL
 
       -- 16. Bluetooth imaging device: CoD major class 0x06 (Imaging), minor 0x20 (Camera).
-      -- Full CoD: 0x0680 = 1664 decimal. These are devices that honestly self-identify
-      -- as Bluetooth cameras — dashcams, security cameras, body-worn cameras from vendors
-      -- other than Axon. Confidence is moderate (STRONG) since CoD is self-reported and
-      -- could be spoofed, but combined with location/behavioral data it is meaningful.
+      -- Full CoD: 0x0620 = 1568 decimal (Major 0x06 Imaging + Minor 0x20 Camera).
+      -- Note: 0x0680 = 1664 decimal has bit 7 set, which indicates a Printer (receipt/label printers).
+      -- These are devices that honestly self-identify as Bluetooth cameras — dashcams, security cameras,
+      -- body-worn cameras from vendors other than Axon. Confidence is moderate (STRONG) since CoD is
+      -- self-reported and could be spoofed, but combined with location/behavioral data it is meaningful.
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         'BT_IMAGING_DEVICE', 70, 'STRONG', 'cod_imaging',
-        jsonb_build_object('cod_hex', '0x0680', 'cod_int', o.radio_frequency,
+        jsonb_build_object('cod_hex', '0x0620', 'cod_int', o.radio_frequency,
           'major_class', 'Imaging', 'minor_class', 'Camera'), 16
       FROM app.networks n
-      JOIN app.observations o ON n.bssid = o.bssid AND o.radio_frequency = 1664
+      JOIN app.observations o ON n.bssid = o.bssid AND o.radio_frequency = 1568
       WHERE n.type IN ('E', 'B')
 
       UNION ALL

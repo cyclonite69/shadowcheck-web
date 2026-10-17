@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-14)
+# 1.0.0 (2026-10-17)
 
 ### Bug Fixes
 
@@ -848,7 +848,8 @@
 - support IMDSv2 for deploy config discovery ([057996a](https://github.com/cyclonite69/shadowcheck-web/commit/057996a115bb32d22a746bd9e90a9449cc4a70d9))
 - surveillance filter hierarchy, count fix, detection evidence panel ([90c49cd](https://github.com/cyclonite69/shadowcheck-web/commit/90c49cdfd0b1a16796e20d5a32186f430640ffb2))
 - surveillance tag assignment and detection evidence panel ([bdfadac](https://github.com/cyclonite69/shadowcheck-web/commit/bdfadac390a8e5f7c60af5fe77b2b9cf96603608))
-- **surveillance:** calibrate Axon Tier 13 and Tier 14 to low-confidence regime ([bcfc19c](https://github.com/cyclonite69/shadowcheck-web/commit/bcfc19c25e879c0eb31346f6b1b150cd9d742249))
+- **surveillance:** calibrate Axon Tier 13 and Tier 14 to low-confidence regime ([ca2e7cf](https://github.com/cyclonite69/shadowcheck-web/commit/ca2e7cf0a5f95d0192f8a9e9893c374e66f3faae))
+- **surveillance:** calibrate BWC candidate generation and decouple car remote starters ([354df3a](https://github.com/cyclonite69/shadowcheck-web/commit/354df3a63633d7a903cd521901f32f87bc5b9c2c))
 - **surveillance:** classify legacy Raven UUID pair at base likelihood 60 (PARTIAL) ([f68aa8c](https://github.com/cyclonite69/shadowcheck-web/commit/f68aa8c5174b1e8c79f85443cbdafec958e6769b))
 - **surveillance:** debug and fix scan job execution pipeline end to end ([04ee68c](https://github.com/cyclonite69/shadowcheck-web/commit/04ee68c7c0daad60d8ee59f699211565a7b2b864))
 - **surveillance:** exclude false positives from detection query results ([724c969](https://github.com/cyclonite69/shadowcheck-web/commit/724c969c5039140b1bf83b5742cc22ba3c108a37))
