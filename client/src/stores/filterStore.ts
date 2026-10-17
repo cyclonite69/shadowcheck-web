@@ -60,6 +60,16 @@ interface HardenedFilterStore {
   ) => string[];
 }
 
+export const SURVEILLANCE_FLAG_KEYS = [
+  'surveillance',
+  'shotspotter',
+  'bwc',
+  'dashcam',
+  'residential_cam',
+  'commercial_cam',
+  'flock',
+] as const;
+
 // Forensically correct defaults - NO implicit filtering
 const defaultFilters: NetworkFilters = {
   temporalScope: TemporalScope.OBSERVATION_TIME,
@@ -235,6 +245,33 @@ export const useFilterStore = create<HardenedFilterStore>()(
       setFilter: (key, value) => {
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
+
+        if ((SURVEILLANCE_FLAG_KEYS as readonly (keyof NetworkFilters)[]).includes(key)) {
+          if (value === true) {
+            set({
+              pageStates: {
+                ...pageStates,
+                [currentPage]: {
+                  filters: { ...pageState.filters, [key]: true },
+                  enabled: { ...pageState.enabled, [key]: true },
+                },
+              },
+            });
+          } else {
+            const { [key]: _removed, ...remainingFilters } = pageState.filters;
+            set({
+              pageStates: {
+                ...pageStates,
+                [currentPage]: {
+                  filters: remainingFilters,
+                  enabled: { ...pageState.enabled, [key]: false },
+                },
+              },
+            });
+          }
+          return;
+        }
+
         set({
           pageStates: {
             ...pageStates,
