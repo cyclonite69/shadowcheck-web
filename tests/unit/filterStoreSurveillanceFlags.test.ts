@@ -13,13 +13,31 @@ const {
   PAGE_CAPABILITIES,
 } = require('../../client/src/utils/filterCapabilities');
 
+const EXPECTED_SURVEILLANCE_FLAG_KEYS: readonly string[] = [
+  'surveillance',
+  'shotspotter',
+  'bwc',
+  'dashcam',
+  'residential_cam',
+  'commercial_cam',
+  'flock',
+];
+
 describe('filterStore - surveillance flag hygiene', () => {
   beforeEach(() => {
     useFilterStore.getState().resetFilters();
   });
 
+  describe('Pinned key list parity', () => {
+    it('matches SURVEILLANCE_FLAG_KEYS independently', () => {
+      expect([...SURVEILLANCE_FLAG_KEYS].sort()).toEqual(
+        [...EXPECTED_SURVEILLANCE_FLAG_KEYS].sort()
+      );
+    });
+  });
+
   describe('1 & 2. Flag keys setFilter true then false', () => {
-    test.each(SURVEILLANCE_FLAG_KEYS as readonly string[])(
+    test.each(EXPECTED_SURVEILLANCE_FLAG_KEYS)(
       'key "%s": setFilter true sets both, setFilter false deletes from filters and disables',
       (key: string) => {
         const store = useFilterStore.getState();

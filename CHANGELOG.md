@@ -335,7 +335,7 @@
 - **filters:** clean up disabled filter values to prevent query bloat ([c1911d5](https://github.com/cyclonite69/shadowcheck-web/commit/c1911d5204f7d3a7b222a71185f9b3f2c5acc4a2))
 - **filters:** default timeframe filter off ([f99cf38](https://github.com/cyclonite69/shadowcheck-web/commit/f99cf383f83c80894eab8829bc246471673c25ed))
 - **filters:** disable qualityFilter by default to prevent 504 timeout ([11c68c5](https://github.com/cyclonite69/shadowcheck-web/commit/11c68c5cf2c17067180d0d5430b4d520478cacbf))
-- **filters:** drop false surveillance flags instead of storing them ([389828e](https://github.com/cyclonite69/shadowcheck-web/commit/389828ef3215b0adb6b0055a8e0c806f6250dfd7))
+- **filters:** drop false surveillance flags instead of storing them ([4c9d7a9](https://github.com/cyclonite69/shadowcheck-web/commit/4c9d7a99bd847ca89b495c5c2867e21ba7f82aa6))
 - **filters:** enforce security/threat filter consistency across api and explorer ([778e1be](https://github.com/cyclonite69/shadowcheck-web/commit/778e1be41414e40f2878f87996ae0f1669056c75)), closes [#8b5cf6](https://github.com/cyclonite69/shadowcheck-web/issues/8b5cf6) [#64748b](https://github.com/cyclonite69/shadowcheck-web/issues/64748b)
 - **filters:** exclude ignored networks from list and count queries ([08cdda5](https://github.com/cyclonite69/shadowcheck-web/commit/08cdda55c41e8ad72351749eb1ec117835cbe7a4))
 - **filters:** guard threat_confidence numeric cast in tag lateral join ([85a5866](https://github.com/cyclonite69/shadowcheck-web/commit/85a5866168b0b3201a4fc4f3bd7070a298c3d97c))
