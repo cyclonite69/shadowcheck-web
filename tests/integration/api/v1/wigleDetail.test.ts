@@ -110,7 +110,12 @@ describe('WiGLE Detail API v1', () => {
       expect(res.body.ok).toBe(true);
       expect(res.body.cached).toBe(true);
       expect(res.body.data.networkId).toBe('00:11:22:33:44:55');
-      expect(mockFetchOrImportDetail).toHaveBeenCalledWith('00:11:22:33:44:55', 'wifi', false);
+      expect(mockFetchOrImportDetail).toHaveBeenCalledWith(
+        '00:11:22:33:44:55',
+        'wifi',
+        false,
+        'manual'
+      );
     });
 
     it('should fetch from WiGLE API and import if requested', async () => {
@@ -132,7 +137,12 @@ describe('WiGLE Detail API v1', () => {
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.imported).toBe(true);
-      expect(mockFetchOrImportDetail).toHaveBeenCalledWith('00:11:22:33:44:55', 'wifi', true);
+      expect(mockFetchOrImportDetail).toHaveBeenCalledWith(
+        '00:11:22:33:44:55',
+        'wifi',
+        true,
+        'manual'
+      );
     });
   });
 

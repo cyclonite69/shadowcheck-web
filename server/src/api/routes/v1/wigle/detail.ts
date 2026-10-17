@@ -46,6 +46,7 @@ router.post(
     const results: Array<{
       bssid: string;
       success: boolean;
+      skipped?: boolean;
       importedObservations?: number;
       error?: string;
     }> = [];
@@ -57,12 +58,24 @@ router.post(
     for (const bssid of cleanBssids) {
       try {
         const networkType = inferWigleEndpoint(typeMap.get(bssid) as string);
-        const result = await fetchOrImportDetail(bssid, networkType, shouldImport === true);
+        const result = await fetchOrImportDetail(
+          bssid,
+          networkType,
+          shouldImport === true,
+          'batch'
+        );
         if (result.ok) {
           results.push({
             bssid,
             success: true,
             importedObservations: result.importedObservations,
+          });
+        } else if (result.skipped) {
+          results.push({
+            bssid,
+            success: false,
+            skipped: true,
+            error: result.error,
           });
         } else {
           results.push({ bssid, success: false, error: result.error });
@@ -73,6 +86,8 @@ router.post(
     }
 
     const succeeded = results.filter((r) => r.success).length;
+    const skipped = results.filter((r) => r.skipped).length;
+    const failed = results.filter((r) => !r.success && !r.skipped).length;
     const totalImported = results.reduce((sum, r) => sum + (r.importedObservations || 0), 0);
 
     res.json({
@@ -81,7 +96,8 @@ router.post(
       summary: {
         total: cleanBssids.length,
         succeeded,
-        failed: cleanBssids.length - succeeded,
+        skipped,
+        failed,
         totalImported,
       },
     });
@@ -98,7 +114,7 @@ router.post(
     const netid = String(req.params.netid || '')
       .trim()
       .toUpperCase();
-    const result = await fetchOrImportDetail(netid, 'wifi', req.body?.import === true);
+    const result = await fetchOrImportDetail(netid, 'wifi', req.body?.import === true, 'manual');
     if (!result.ok) {
       return res.status(result.status).json(result);
     }
@@ -116,7 +132,7 @@ router.post(
     const netid = String(req.params.netid || '')
       .trim()
       .toUpperCase();
-    const result = await fetchOrImportDetail(netid, 'bt', req.body?.import === true);
+    const result = await fetchOrImportDetail(netid, 'bt', req.body?.import === true, 'manual');
     if (!result.ok) {
       return res.status(result.status).json(result);
     }

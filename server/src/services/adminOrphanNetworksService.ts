@@ -16,10 +16,7 @@ type ListOrphanNetworksOptions = {
 };
 
 type OrphanBackfillStatus =
-  | 'not_attempted'
-  | 'wigle_match_imported_v3'
-  | 'no_wigle_match'
-  | 'error';
+  'not_attempted' | 'wigle_match_imported_v3' | 'no_wigle_match' | 'error';
 
 async function recordBackfillAttempt(input: {
   bssid: string;
@@ -203,9 +200,21 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
   const endpoint = inferWigleEndpoint(orphan.type);
 
   try {
-    const detailResponse = await fetchUpstream(orphan.bssid, endpoint);
+    const detailResponse = await fetchUpstream(orphan.bssid, endpoint, 'manual');
     const data = detailResponse.ok ? detailResponse.data : null;
     const detailStatus: number = detailResponse.ok ? 200 : detailResponse.status;
+
+    if (!detailResponse.ok && detailResponse.skipped) {
+      return {
+        ok: true,
+        bssid: orphan.bssid,
+        status: 'not_attempted',
+        skipped: true,
+        endpoint,
+        importedObservations: 0,
+        message: detailResponse.error,
+      };
+    }
 
     // Check if payload has actual observation data. networkId alone is not sufficient —
     // WiGLE echoes the queried ID back even when it has no location data for the network.

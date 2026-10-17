@@ -26,7 +26,7 @@ export async function fetchAndImportDetail(
   const result = await fetchOrImportDetail(netid, endpoint, true, 'enrichment');
 
   if (!result.ok) {
-    if (result.status === 404) {
+    if (result.status === 404 || result.skipped) {
       return null;
     }
     throw Object.assign(new Error(result.error || `WiGLE API failed (${result.status})`), {

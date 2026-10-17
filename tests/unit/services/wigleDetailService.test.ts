@@ -92,7 +92,7 @@ describe('wigleDetailService', () => {
         return null;
       });
 
-      const result = await fetchUpstream('netid', 'wifi');
+      const result = await fetchUpstream('netid', 'wifi', 'manual');
       expect(result).toEqual({
         ok: false,
         status: 503,
@@ -108,7 +108,7 @@ describe('wigleDetailService', () => {
       expect(isLocallyAdministeredMac('a')).toBe(false);
     });
 
-    it('returns 404 immediately without calling gateway for locally administered MACs', async () => {
+    it('calls gateway and does not short-circuit for manual single lookups of locally administered MACs', async () => {
       secretsManager.get.mockImplementation((key: string) => {
         if (key === 'wigle_api_name') {
           return 'some-name';
@@ -119,12 +119,64 @@ describe('wigleDetailService', () => {
         return null;
       });
 
-      const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi');
+      const mockData = { networkId: '0E:FE:7B:78:FC:79', type: 'infra' };
+      const mockResponse: any = {
+        ok: true,
+        status: 200,
+        json: (jest.fn() as any).mockResolvedValue(mockData),
+      };
+
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: mockResponse,
+      });
+
+      const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi', 'manual');
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips gateway and returns 422 with skipped flag for non-manual queries of locally administered MACs', async () => {
+      secretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
+        return null;
+      });
+
+      const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi', 'enrichment');
       expect(result).toEqual({
         ok: false,
-        status: 404,
-        error:
-          'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+        status: 422,
+        skipped: true,
+        error: 'Not queried: locally-administered MAC skipped for enrichment lookups',
+      });
+      expect(wigleGatewayFetch).not.toHaveBeenCalled();
+    });
+
+    it('skips gateway and returns 422 with skipped flag for batch queries of locally administered MACs', async () => {
+      secretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
+        return null;
+      });
+
+      const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi', 'batch');
+      expect(result).toEqual({
+        ok: false,
+        status: 422,
+        skipped: true,
+        error: 'Not queried: locally-administered MAC skipped for batch lookups',
       });
       expect(wigleGatewayFetch).not.toHaveBeenCalled();
     });
@@ -146,7 +198,7 @@ describe('wigleDetailService', () => {
         error: 'Network Timeout',
       });
 
-      const result = await fetchUpstream('netid', 'wifi');
+      const result = await fetchUpstream('netid', 'wifi', 'manual');
       expect(result).toEqual({
         ok: false,
         status: 500,
@@ -177,12 +229,11 @@ describe('wigleDetailService', () => {
         response: mockResponse,
       });
 
-      const result = await fetchUpstream('netid', 'wifi');
+      const result = await fetchUpstream('netid', 'wifi', 'manual');
       expect(result).toEqual({
         ok: false,
         status: 404,
-        error:
-          'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+        error: 'Network not found in WiGLE database',
       });
     });
 
@@ -208,7 +259,7 @@ describe('wigleDetailService', () => {
         response: mockResponse,
       });
 
-      const result = await fetchUpstream('netid', 'wifi');
+      const result = await fetchUpstream('netid', 'wifi', 'manual');
       expect(result).toEqual({
         ok: false,
         status: 400,
@@ -239,7 +290,7 @@ describe('wigleDetailService', () => {
         response: mockResponse,
       });
 
-      const result = await fetchUpstream('netid', 'wifi');
+      const result = await fetchUpstream('netid', 'wifi', 'manual');
       expect(result).toEqual({
         ok: true,
         data: { networkId: 'netid', locationClusters: [] },
@@ -288,7 +339,7 @@ describe('wigleDetailService', () => {
       };
       getWigleDetail.mockResolvedValue(mockCached);
 
-      const result = await fetchOrImportDetail('netid', 'wifi', false);
+      const result = await fetchOrImportDetail('netid', 'wifi', false, 'manual');
       expect(result).toEqual({
         ok: true,
         data: expect.objectContaining({
@@ -316,7 +367,7 @@ describe('wigleDetailService', () => {
       };
       wigleGatewayFetch.mockResolvedValue({ ok: true, response: mockResponse });
 
-      const result = await fetchOrImportDetail('netid', 'wifi', false);
+      const result = await fetchOrImportDetail('netid', 'wifi', false, 'manual');
       expect(result).toEqual({
         ok: true,
         data: { networkId: 'netid', locationClusters: [] },
@@ -338,7 +389,7 @@ describe('wigleDetailService', () => {
       getWigleObservations.mockResolvedValue({ total: 42 });
       hashRecord.mockReturnValue('hash');
 
-      const result = await fetchOrImportDetail('netid', 'wifi', true);
+      const result = await fetchOrImportDetail('netid', 'wifi', true, 'manual');
       expect(result).toEqual({
         ok: true,
         data: expect.objectContaining({
@@ -360,7 +411,7 @@ describe('wigleDetailService', () => {
       getRecentWigleDetailImport.mockResolvedValue(null);
       secretsManager.get.mockReturnValue(null); // triggers credential check failure
 
-      const result = await fetchOrImportDetail('netid', 'wifi', true);
+      const result = await fetchOrImportDetail('netid', 'wifi', true, 'manual');
       expect(result.ok).toBe(false);
     });
 
@@ -387,7 +438,7 @@ describe('wigleDetailService', () => {
       importWigleV3ObservationRow.mockResolvedValue(1);
       getWigleObservations.mockResolvedValue({ total: 1 });
 
-      const result = await fetchOrImportDetail('netid', 'wifi', true);
+      const result = await fetchOrImportDetail('netid', 'wifi', true, 'manual');
       expect(result).toEqual({
         ok: true,
         data: {

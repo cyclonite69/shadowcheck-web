@@ -48,7 +48,7 @@ describe('wigleDetailService', () => {
     it('returns 503 if credentials are not configured', async () => {
       (secretsManager.get as jest.Mock).mockReturnValue(null);
 
-      const result = await fetchUpstream(netid, endpoint);
+      const result = await fetchUpstream(netid, endpoint, 'manual');
 
       expect(result).toEqual({
         ok: false,
@@ -69,14 +69,51 @@ describe('wigleDetailService', () => {
         },
       });
 
-      const result = await fetchUpstream(netid, endpoint);
+      const result = await fetchUpstream(netid, endpoint, 'manual');
 
       expect(result).toEqual({
         ok: false,
         status: 404,
-        error:
-          'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+        error: 'Network not found in WiGLE database',
       });
+    });
+
+    it('invokes gateway for manual single lookups with locally administered MACs', async () => {
+      const laaNetid = '02:00:00:00:00:01';
+      const mockData = { networkId: laaNetid, name: 'Test Guest Network' };
+      (secretsManager.get as jest.Mock).mockReturnValue('some-val');
+      (getEncodedWigleAuth as jest.Mock).mockReturnValue('encoded-auth');
+      (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => mockData,
+        },
+      });
+
+      const result = await fetchUpstream(laaNetid, 'wifi', 'manual');
+
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalled();
+    });
+
+    it('skips gateway and returns 422 with skipped flag for background queries of locally administered MACs', async () => {
+      const laaNetid = '02:00:00:00:00:01';
+      (secretsManager.get as jest.Mock).mockReturnValue('some-val');
+
+      const result = await fetchUpstream(laaNetid, 'wifi', 'enrichment');
+
+      expect(result).toEqual({
+        ok: false,
+        status: 422,
+        skipped: true,
+        error: 'Not queried: locally-administered MAC skipped for enrichment lookups',
+      });
+      expect(wigleGatewayFetch).not.toHaveBeenCalled();
     });
 
     it('returns error if gateway fetch fails', async () => {
@@ -87,7 +124,7 @@ describe('wigleDetailService', () => {
         error: 'Gateway Timeout',
       });
 
-      const result = await fetchUpstream(netid, endpoint);
+      const result = await fetchUpstream(netid, endpoint, 'manual');
 
       expect(result).toEqual({
         ok: false,
@@ -108,7 +145,7 @@ describe('wigleDetailService', () => {
         },
       });
 
-      const result = await fetchUpstream(netid, endpoint);
+      const result = await fetchUpstream(netid, endpoint, 'manual');
 
       expect(result).toEqual({
         ok: true,
@@ -172,7 +209,7 @@ describe('wigleDetailService', () => {
       (stripNullBytesDeep as jest.Mock).mockImplementation((d) => d);
       (mapCachedDetailToApiShape as jest.Mock).mockReturnValue(mockCached);
 
-      const result = await fetchOrImportDetail(netid, endpoint, false);
+      const result = await fetchOrImportDetail(netid, endpoint, false, 'manual');
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -188,7 +225,7 @@ describe('wigleDetailService', () => {
       (stripNullBytesDeep as jest.Mock).mockImplementation((d) => d);
       (mapCachedDetailToApiShape as jest.Mock).mockReturnValue(mockRecent);
 
-      const result = await fetchOrImportDetail(netid, endpoint, true);
+      const result = await fetchOrImportDetail(netid, endpoint, true, 'manual');
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -218,7 +255,7 @@ describe('wigleDetailService', () => {
       (stripNullBytesDeep as jest.Mock).mockImplementation((d) => d);
       (getWigleObservations as jest.Mock).mockResolvedValue({ total: 0 });
 
-      const result = await fetchOrImportDetail(netid, endpoint, true);
+      const result = await fetchOrImportDetail(netid, endpoint, true, 'manual');
 
       expect(result.ok).toBe(true);
       if (result.ok) {

@@ -35,6 +35,7 @@ export interface DetailError {
   ok: false;
   error: string;
   status: number;
+  skipped?: boolean;
   details?: string;
 }
 
@@ -51,6 +52,8 @@ export function isLocallyAdministeredMac(mac: string): boolean {
   return (firstByte & 0x02) !== 0;
 }
 
+export type DetailQuerySource = 'manual' | 'batch' | 'enrichment';
+
 /**
  * Fetch raw WiGLE v3 detail response without importing.
  * Returns { ok: true, data } on success or { ok: false, status, error } on failure.
@@ -58,7 +61,7 @@ export function isLocallyAdministeredMac(mac: string): boolean {
 export async function fetchUpstream(
   netid: string,
   endpoint: string,
-  query_source = 'manual'
+  query_source: DetailQuerySource
 ): Promise<{ ok: true; data: any } | DetailError> {
   const wigleApiName = secretsManager.get('wigle_api_name');
   const wigleApiToken = secretsManager.get('wigle_api_token');
@@ -67,15 +70,14 @@ export async function fetchUpstream(
     return { ok: false, status: 503, error: 'WiGLE API credentials not configured' };
   }
 
-  if (isLocallyAdministeredMac(netid)) {
-    logger.info(
-      `[WiGLE][v3/detail/${endpoint}][404] Skipping upstream call for locally-administered/randomized MAC: ${netid}`
-    );
+  if (query_source !== 'manual' && isLocallyAdministeredMac(netid)) {
+    const skipMessage = `Not queried: locally-administered MAC skipped for ${query_source} lookups`;
+    logger.info(`[WiGLE][v3/detail/${endpoint}][SKIPPED] ${skipMessage}: ${netid}`);
     return {
       ok: false,
-      status: 404,
-      error:
-        'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+      status: 422,
+      skipped: true,
+      error: skipMessage,
     };
   }
 
@@ -91,6 +93,10 @@ export async function fetchUpstream(
     })}`
   );
 
+  // Normalize query_source for ledger provenance to satisfy migration 053 CHECK constraint:
+  // ('manual', 'enrichment', 'import', 'sibling_trigger', 'scheduled')
+  const ledgerSource = query_source === 'enrichment' ? 'enrichment' : 'manual';
+
   const gatewayResult = await wigleGatewayFetch({
     kind: 'detail',
     url: apiUrl,
@@ -99,7 +105,7 @@ export async function fetchUpstream(
     label: 'WiGLE Detail API',
     entrypoint: 'manual-detail',
     endpointType: `v3/detail/${endpoint}`,
-    query_source,
+    query_source: ledgerSource,
     init: {
       headers: {
         Authorization: `Basic ${encodedAuth}`,
@@ -124,17 +130,11 @@ export async function fetchUpstream(
   if (!response.ok) {
     const errorText = await response.text();
     if (response.status === 404) {
-      logger.info(
-        `[WiGLE][v3/detail/${endpoint}][404] Network not found (likely randomized/local MAC)`,
-        {
-          netid,
-        }
-      );
+      logger.info(`[WiGLE][v3/detail/${endpoint}][404] Network not found in WiGLE: ${netid}`);
       return {
         ok: false,
         status: 404,
-        error:
-          'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+        error: 'Network not found in WiGLE database',
       };
     }
     logger.error(
@@ -196,7 +196,7 @@ export async function fetchOrImportDetail(
   netid: string,
   endpoint: string,
   shouldImport: boolean,
-  query_source = 'manual'
+  query_source: DetailQuerySource
 ): Promise<DetailResult | DetailError> {
   const recentImportHours = Math.max(1, Number(process.env.WIGLE_DETAIL_IMPORT_DEDUPE_HOURS || 24));
 
