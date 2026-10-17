@@ -349,7 +349,7 @@
 - **filters:** make full radio-type selection neutral in shared predicates ([17f6b7a](https://github.com/cyclonite69/shadowcheck-web/commit/17f6b7afb254a25ab972c2e1733c8786e7a0ff10))
 - **filters:** make stationary confidence network-only + remove obs timeframe ([a63cb78](https://github.com/cyclonite69/shadowcheck-web/commit/a63cb78d4471e9c6f9664c79abf879e2e1c54786))
 - **filters:** map medium threat category to MEDIUM and legacy MED ([bdd5551](https://github.com/cyclonite69/shadowcheck-web/commit/bdd5551b9bd2d72813ae2e020dbf868f92790034))
-- **filters:** migrate persisted surveillance flags (persist v4) ([0d7b398](https://github.com/cyclonite69/shadowcheck-web/commit/0d7b3984f4a49ceadf20d733d451a8462500a288))
+- **filters:** migrate persisted surveillance flags (persist v4) ([483aa2d](https://github.com/cyclonite69/shadowcheck-web/commit/483aa2d547dcba3f6d91df75bdfbb6fc7a7188e0))
 - **filters:** normalize encryption matching in network-only queries ([cca9bf2](https://github.com/cyclonite69/shadowcheck-web/commit/cca9bf24b474c94de186cd28dd4da71d3eee3c01))
 - **filters:** normalize security encryption labels to canonical values ([5697f1e](https://github.com/cyclonite69/shadowcheck-web/commit/5697f1ea623ccb7a9736f40b1863e64c0ae52883))
 - **filters:** preserve granular encryption types in normalization ([74d4903](https://github.com/cyclonite69/shadowcheck-web/commit/74d4903d0ad96c508ba2a430bfb55b0464cd7e43))

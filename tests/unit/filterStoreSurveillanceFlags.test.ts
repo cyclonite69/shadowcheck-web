@@ -328,4 +328,133 @@ describe('filterStore - surveillance flag hygiene', () => {
       expect(migrated.presets.dirtyPreset.enabled.surveillance).toBe(false);
     });
   });
+
+  describe('Zustand persist wiring & hydration via localStorage shim', () => {
+    const originalWindow = (globalThis as any).window;
+    const originalLocalStorage = (globalThis as any).localStorage;
+
+    afterEach(() => {
+      if (originalWindow === undefined) {
+        delete (globalThis as any).window;
+      } else {
+        (globalThis as any).window = originalWindow;
+      }
+      if (originalLocalStorage === undefined) {
+        delete (globalThis as any).localStorage;
+      } else {
+        (globalThis as any).localStorage = originalLocalStorage;
+      }
+    });
+
+    const dirtyStoredState = {
+      currentPage: 'default',
+      pageStates: {
+        default: {
+          filters: { bwc: false, surveillance: true },
+          enabled: { bwc: true, surveillance: false },
+        },
+      },
+      presets: {
+        dirtyPreset: {
+          filters: { bwc: false, surveillance: true },
+          enabled: { bwc: true, surveillance: false },
+        },
+      },
+    };
+
+    it('hydrates clean from a v3 persisted payload via zustand persist middleware', async () => {
+      const storageMap = new Map<string, string>();
+      storageMap.set(
+        'shadowcheck-filters-v2',
+        JSON.stringify({
+          version: 3,
+          state: dirtyStoredState,
+        })
+      );
+
+      const localStorageShim = {
+        getItem: (k: string) => storageMap.get(k) ?? null,
+        setItem: (k: string, v: string) => storageMap.set(k, String(v)),
+        removeItem: (k: string) => {
+          storageMap.delete(k);
+        },
+        clear: () => {
+          storageMap.clear();
+        },
+      };
+
+      (globalThis as any).window = globalThis;
+      (globalThis as any).localStorage = localStorageShim;
+
+      let isolatedStore: any;
+      jest.isolateModules(() => {
+        isolatedStore = require('../../client/src/stores/filterStore');
+      });
+
+      expect(isolatedStore.useFilterStore.persist).toBeDefined();
+      await isolatedStore.useFilterStore.persist.rehydrate();
+
+      const filters = isolatedStore.useFilterStore.getState().getCurrentFilters();
+      const enabled = isolatedStore.useFilterStore.getState().getCurrentEnabled();
+
+      expect(Object.prototype.hasOwnProperty.call(filters, 'bwc')).toBe(false);
+      expect('bwc' in filters).toBe(false);
+      expect(enabled.bwc).toBe(false);
+      expect(filters.surveillance).toBe(true);
+      expect(enabled.surveillance).toBe(false);
+
+      const presets = isolatedStore.useFilterStore.getState().presets;
+      expect(presets.dirtyPreset).toBeDefined();
+      expect(Object.prototype.hasOwnProperty.call(presets.dirtyPreset.filters, 'bwc')).toBe(false);
+      expect('bwc' in presets.dirtyPreset.filters).toBe(false);
+      expect(presets.dirtyPreset.enabled.bwc).toBe(false);
+      expect(presets.dirtyPreset.filters.surveillance).toBe(true);
+      expect(presets.dirtyPreset.enabled.surveillance).toBe(false);
+    });
+
+    it('control: does NOT migrate a v4 persisted payload (stays dirty proving the version gate)', async () => {
+      const storageMap = new Map<string, string>();
+      storageMap.set(
+        'shadowcheck-filters-v2',
+        JSON.stringify({
+          version: 4,
+          state: dirtyStoredState,
+        })
+      );
+
+      const localStorageShim = {
+        getItem: (k: string) => storageMap.get(k) ?? null,
+        setItem: (k: string, v: string) => storageMap.set(k, String(v)),
+        removeItem: (k: string) => {
+          storageMap.delete(k);
+        },
+        clear: () => {
+          storageMap.clear();
+        },
+      };
+
+      (globalThis as any).window = globalThis;
+      (globalThis as any).localStorage = localStorageShim;
+
+      let isolatedStore: any;
+      jest.isolateModules(() => {
+        isolatedStore = require('../../client/src/stores/filterStore');
+      });
+
+      expect(isolatedStore.useFilterStore.persist).toBeDefined();
+      await isolatedStore.useFilterStore.persist.rehydrate();
+
+      const filters = isolatedStore.useFilterStore.getState().getCurrentFilters();
+      const enabled = isolatedStore.useFilterStore.getState().getCurrentEnabled();
+
+      // At version 4, migration did NOT run; dirty values remain as stored
+      expect(filters.bwc).toBe(false);
+      expect(enabled.bwc).toBe(true);
+
+      const presets = isolatedStore.useFilterStore.getState().presets;
+      expect(presets.dirtyPreset).toBeDefined();
+      expect(presets.dirtyPreset.filters.bwc).toBe(false);
+      expect(presets.dirtyPreset.enabled.bwc).toBe(true);
+    });
+  });
 });
