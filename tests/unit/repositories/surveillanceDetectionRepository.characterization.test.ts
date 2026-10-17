@@ -21,15 +21,16 @@ describe('surveillanceDetectionRepository characterization', () => {
       'Motorola body-worn camera OUI match',
       'Axon BLE manufacturer ID 0x034D',
       'Axon Signal BLE name patterns (^axon, ^taser, ^signal)',
-      'Body-worn camera officer assignment SSID: X_[initial][surname]',
-      'Axon body cam BLE service UUID 0xFFA1 (confirmed from captured devices).',
+      'Low-confidence BWC SSID heuristic: officer assignment & operational naming (X_*)',
+      'Low-confidence BWC BLE service UUID 0xFFA1 heuristic (non-X_ beacons)',
       'Axon body cam CoD fingerprint: 0x1F00 (Uncategorized, no service class).',
       'Bluetooth imaging device: CoD major class 0x06 (Imaging), minor 0x20 (Camera).',
       'Unknown vendor body cam SSID pattern: DEI-[digits]',
       'DEI- body cam service UUID (confirmed exclusive to DEI- devices in dataset).',
       'Dashcam SSID patterns. These remain surveillance-relevant but are',
-      'Residential/consumer camera OUI match. Manufacturer reference',
+      'Residential/consumer camera OUI and SSID match. Manufacturer reference',
       'Raven gunshot detector BLE service UUIDs',
+      'Commercial/enterprise security camera match (OUI and CCTV/NVR patterns)',
     ];
 
     test('preserves the tier sequence and enriched candidate SQL contract', async () => {
@@ -47,7 +48,7 @@ describe('surveillanceDetectionRepository characterization', () => {
 
       expect(params).toBeUndefined();
       expect(tiers.map((match) => Number(match[1]))).toEqual(
-        Array.from({ length: 21 }, (_, index) => index + 1)
+        Array.from({ length: 22 }, (_, index) => index + 1)
       );
       expect(tiers.map((match) => match[2].trim())).toEqual(tierLabels);
 

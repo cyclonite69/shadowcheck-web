@@ -1537,7 +1537,7 @@
 - **wigle:** implement v3 enrichment manager with catalog browser and re-import support ([4cb5ae4](https://github.com/cyclonite69/shadowcheck-web/commit/4cb5ae42d4bacc638e0c4f749f910dfe2c6431a4))
 - **wigle:** inline tooltip on search result row click ([5678707](https://github.com/cyclonite69/shadowcheck-web/commit/56787079c7dcb4da5972e011bbdc6e7104c71de4))
 - **wigle:** observation row click updates forensic preview ([4066ed7](https://github.com/cyclonite69/shadowcheck-web/commit/4066ed7965d3e60c1584b96e815dedc7386656f9))
-- **wigle:** permit manual lookups for locally administered MACs ([cc5197c](https://github.com/cyclonite69/shadowcheck-web/commit/cc5197c0aeaa2207a7de05f65a9947db879777d2))
+- **wigle:** permit manual lookups for locally administered MACs ([79acc93](https://github.com/cyclonite69/shadowcheck-web/commit/79acc93d44b858ae00c2428fd431ed36a35e8a28))
 - **wigle:** Phase 5 — click tooltip for aggregated observation layer ([219ffdf](https://github.com/cyclonite69/shadowcheck-web/commit/219ffdfbf46c0576d4f8a615739d9a826427b438))
 - **wigle:** record request ledger provenance and rate-limit hints ([70a08b9](https://github.com/cyclonite69/shadowcheck-web/commit/70a08b93a9852b2d0e90977cdc03fc2e8bf32a6f))
 - **wigle:** remove global circuit breaker for background tasks ([80d8f3b](https://github.com/cyclonite69/shadowcheck-web/commit/80d8f3bc7a702bd8071d6aaa9b6d41537d048a77))
