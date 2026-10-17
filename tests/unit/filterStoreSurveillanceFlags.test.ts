@@ -13,8 +13,8 @@ const {
   canonicalizeSurveillanceFlags,
   migrateFilterStore,
   FILTER_STORE_PERSIST_VERSION,
-  isSurveillanceFlagActive,
 } = require('../../client/src/stores/filterStore');
+const { isSurveillanceFlagActive } = require('../../client/src/utils/surveillanceFlags');
 const {
   adaptFiltersToPage,
   PAGE_CAPABILITIES,

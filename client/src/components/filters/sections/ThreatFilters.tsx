@@ -5,9 +5,7 @@
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
 import { NetworkFilters, ThreatCategory } from '../../../types/filters';
-import { isSurveillanceFlagActive } from '../../../stores/filterStore';
-
-export { isSurveillanceFlagActive };
+import { isSurveillanceFlagActive } from '../../../utils/surveillanceFlags';
 
 interface ThreatFiltersProps {
   filters: NetworkFilters;
