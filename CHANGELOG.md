@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-17)
+# 1.0.0 (2026-10-19)
 
 ### Bug Fixes
 
@@ -989,6 +989,7 @@
 - wigle tooltip timestamps — use firsttime/lasttime from feature props ([3ac9a02](https://github.com/cyclonite69/shadowcheck-web/commit/3ac9a0293ff6d8ade9434b5fbee984e5425c7352)), closes [#N](https://github.com/cyclonite69/shadowcheck-web/issues/N)
 - **wigle-detail:** render forensic tooltip HTML in preview pane on observation select ([33d4f7d](https://github.com/cyclonite69/shadowcheck-web/commit/33d4f7d9e9f2713c932d2cf38b26476105208544))
 - **wigle-explorer:** remove local MV upgrade from WiGLE observation popups ([dfe8c8c](https://github.com/cyclonite69/shadowcheck-web/commit/dfe8c8c53f16f41addd159a467290c1d8e9a6d6e))
+- **wigle-import:** bounded retry and pause semantics for transient search failures ([e159985](https://github.com/cyclonite69/shadowcheck-web/commit/e1599850cf2083d1bd2c335de343244e9a09f5bd))
 - **wigle-ledger:** remove detail soft limit — no empirical basis for a cap yet ([ac10517](https://github.com/cyclonite69/shadowcheck-web/commit/ac1051715cfd33a0136eba27806aeb1459cfdfa8))
 - **wigle-map:** defer 3D and terrain apply until style loaded ([70e7863](https://github.com/cyclonite69/shadowcheck-web/commit/70e7863ba8273f126b3e6cdd6716c246c8439e1a))
 - **wigle-page:** restore original tooltip layout, correctly populated from MV ([69b0f19](https://github.com/cyclonite69/shadowcheck-web/commit/69b0f19ab6baa4fbf1ca1258c9b20eb3916cea65)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa)

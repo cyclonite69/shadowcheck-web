@@ -139,7 +139,27 @@ const markRunFailure = async (runId: number, message: string) => {
   return result.rows[0];
 };
 
-const markRunControlStatus = async (runId: number, status: 'paused' | 'cancelled') => {
+const markRunControlStatus = async (
+  runId: number,
+  status: 'paused' | 'cancelled',
+  errorMessage?: string | null
+) => {
+  if (errorMessage !== undefined) {
+    const result = await adminDbService.adminQuery(
+      `UPDATE app.wigle_import_runs
+          SET status = $2,
+              last_error = CASE WHEN $3 IS NOT NULL THEN $3 ELSE last_error END,
+              last_attempted_at = NOW(),
+              updated_at = NOW(),
+              completed_at = CASE WHEN $2 = 'cancelled' THEN NOW() ELSE completed_at END
+        WHERE id = $1
+          AND status IN ('running', 'failed', 'paused')
+        RETURNING *`,
+      [runId, status, errorMessage]
+    );
+    return result.rows[0] || null;
+  }
+
   const result = await adminDbService.adminQuery(
     `UPDATE app.wigle_import_runs
         SET status = $2,

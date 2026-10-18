@@ -40,7 +40,14 @@ export interface WigleGatewayRequest {
 
 export type WigleGatewayResult =
   | { ok: true; response: Response; latencyMs: number; ledgerId: number | null }
-  | { ok: false; error: string; status?: number; validationError?: boolean };
+  | {
+      ok: false;
+      error: string;
+      status?: number;
+      validationError?: boolean;
+      isTimeout?: boolean;
+      code?: string;
+    };
 
 /**
  * Send a single outbound request to the WiGLE API through the gateway.
@@ -181,6 +188,12 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       });
     }
 
-    return { ok: false, error: err?.message ?? String(err), status };
+    return {
+      ok: false,
+      error: err?.message ?? String(err),
+      status,
+      isTimeout,
+      code: err?.code,
+    };
   }
 }

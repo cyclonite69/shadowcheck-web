@@ -14,6 +14,55 @@ import { getAdaptiveDelay, sleep } from '../rateLimitingStrategy';
 import { fetchWiglePage, type WiglePageResponse } from '../wigleApiClient';
 
 /**
+ * Backoff duration for transient network/timeout retries.
+ * Distinct from adaptive-delay values (which pace inter-page requests).
+ */
+export const TRANSIENT_RETRY_BACKOFF_MS = 15_000;
+
+export function getMaxTransientRetries(): number {
+  const envVal = process.env.WIGLE_IMPORT_TRANSIENT_RETRIES;
+  if (envVal !== undefined && envVal !== '') {
+    const parsed = Number(envVal);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return 1;
+}
+
+export function isLocalSoftLimitError(error: any): boolean {
+  return (
+    error?.status === 429 &&
+    typeof error?.message === 'string' &&
+    /soft limit reached/i.test(error.message)
+  );
+}
+
+export function isTransientError(error: any): boolean {
+  if (isLocalSoftLimitError(error)) {
+    return false;
+  }
+  if (error?.status === 401 || error?.status === 403) {
+    return false;
+  }
+  if (error?.isTimeout || error?.name === 'AbortError') {
+    return true;
+  }
+  const status = error?.status;
+  if (status === 502 || status === 503 || status === 504) {
+    return true;
+  }
+  const code = error?.code;
+  if (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'UND_ERR_CONNECT_TIMEOUT') {
+    return true;
+  }
+  if (typeof error?.message === 'string' && /timeout after/i.test(error.message)) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Coordinates the long-running WiGLE import loop.
  * This class owns retry behavior, page lifecycle, and terminal run-state transitions.
  */
@@ -123,44 +172,104 @@ export class WigleImportRunOrchestrator {
     runId: number,
     pageNumber: number
   ): Promise<WiglePageResponse> {
-    try {
-      return await fetchWiglePage(encodedAuth, requestParams, requestCursor);
-    } catch (error: any) {
-      if (error?.status === 401 || error?.status === 403) {
-        logger.error('[WiGLE Import] AUTH ERROR — halting pipeline, do not retry', {
-          runId,
-          pageNumber,
-          status: error?.status,
-          details: String(error?.details || error?.message || '').slice(0, 500),
-        });
-        throw error;
-      }
+    const maxTransientRetries = getMaxTransientRetries();
+    let transientAttempt = 0;
 
-      if (error?.status !== 429) {
-        throw error;
-      }
-
-      const delayMs = WigleImportRunOrchestrator.computeRetryDelayMs(error?.retryAfter);
-      logger.warn('[WiGLE Import] Rate limited (429) — waiting then retrying once', {
-        runId,
-        pageNumber,
-        delayMs,
-        retryAfter: error?.retryAfter ?? null,
-      });
-      await sleep(delayMs);
-
+    for (;;) {
       try {
         return await fetchWiglePage(encodedAuth, requestParams, requestCursor);
-      } catch (retryError: any) {
-        if (retryError?.status === 429) {
-          logger.error('[WiGLE Import] Rate limited again after single retry — halting run', {
+      } catch (error: any) {
+        if (error?.status === 401 || error?.status === 403) {
+          logger.error('[WiGLE Import] AUTH ERROR — halting pipeline, do not retry', {
             runId,
             pageNumber,
-            retryAfter: retryError?.retryAfter ?? null,
-            details: String(retryError?.details || retryError?.message || '').slice(0, 500),
+            status: error?.status,
+            details: String(error?.details || error?.message || '').slice(0, 500),
           });
+          throw error;
         }
-        throw retryError;
+
+        // Local soft limit is never transient and should not be retried with extra sleep
+        if (isLocalSoftLimitError(error)) {
+          logger.warn('[WiGLE Import] Local soft limit reached — pausing without retry', {
+            runId,
+            pageNumber,
+          });
+          throw error;
+        }
+
+        // Upstream rate limit (429)
+        if (error?.status === 429) {
+          const delayMs = WigleImportRunOrchestrator.computeRetryDelayMs(error?.retryAfter);
+          logger.warn('[WiGLE Import] Rate limited (429) — waiting then retrying once', {
+            runId,
+            pageNumber,
+            delayMs,
+            retryAfter: error?.retryAfter ?? null,
+          });
+          await sleep(delayMs);
+
+          const currentRun = await getRunOrThrow(runId);
+          if (currentRun.status === 'paused' || currentRun.status === 'cancelled') {
+            const stopErr: any = new Error(`Run ${currentRun.status} during rate-limit backoff`);
+            stopErr.isStopped = true;
+            stopErr.run = currentRun;
+            throw stopErr;
+          }
+
+          try {
+            return await fetchWiglePage(encodedAuth, requestParams, requestCursor);
+          } catch (retryError: any) {
+            if (retryError?.status === 429) {
+              logger.error('[WiGLE Import] Rate limited again after single retry — halting run', {
+                runId,
+                pageNumber,
+                retryAfter: retryError?.retryAfter ?? null,
+                details: String(retryError?.details || retryError?.message || '').slice(0, 500),
+              });
+            }
+            throw retryError;
+          }
+        }
+
+        // Transient error handling (timeout, 502/503/504, network reset)
+        // NOTE: Each retry sends a search request to WiGLE and consumes 1/50th of the rolling 24h search quota.
+        // Retries are strictly bounded by WIGLE_IMPORT_TRANSIENT_RETRIES (default 1) to prevent quota exhaustion.
+        if (isTransientError(error) && transientAttempt < maxTransientRetries) {
+          transientAttempt++;
+          logger.warn(
+            `[WiGLE Import] Transient error (${error?.message}) — waiting ${TRANSIENT_RETRY_BACKOFF_MS}ms before retry (${transientAttempt}/${maxTransientRetries})`,
+            {
+              runId,
+              pageNumber,
+              attempt: transientAttempt,
+              maxRetries: maxTransientRetries,
+              error: error?.message,
+            }
+          );
+
+          await sleep(TRANSIENT_RETRY_BACKOFF_MS);
+
+          const currentRun = await getRunOrThrow(runId);
+          if (currentRun.status === 'paused' || currentRun.status === 'cancelled') {
+            logger.info('[WiGLE Import] Run stopped by operator during backoff', {
+              runId,
+              status: currentRun.status,
+            });
+            const stopErr: any = new Error(`Run ${currentRun.status} during backoff`);
+            stopErr.isStopped = true;
+            stopErr.run = currentRun;
+            throw stopErr;
+          }
+
+          continue;
+        }
+
+        if (isTransientError(error)) {
+          error.isTransient = true;
+        }
+
+        throw error;
       }
     }
   }
@@ -194,6 +303,10 @@ export class WigleImportRunOrchestrator {
     requestCursor: string | null,
     error: any
   ) {
+    if (error?.isStopped) {
+      return error.run ?? getRunOrThrow(runId);
+    }
+
     const errorMessage = error?.details || error?.message || 'WiGLE import page failed';
     await persistPageFailure(runId, pageNumber, requestCursor, errorMessage);
 
@@ -207,6 +320,19 @@ export class WigleImportRunOrchestrator {
         runId,
         pageNumber,
       });
+      return run;
+    }
+
+    if (error?.isTransient) {
+      const run = await markRunControlStatus(runId, 'paused', errorMessage);
+      logger.warn(
+        '[WiGLE Import] Transient failure retries exhausted — run paused for later resumption',
+        {
+          runId,
+          pageNumber,
+          error: errorMessage,
+        }
+      );
       return run;
     }
 

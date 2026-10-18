@@ -9,6 +9,22 @@ export {};
 
 type SearchEntryPoint = 'manual-search' | 'import-run';
 
+export const DEFAULT_IMPORT_SEARCH_TIMEOUT_MS = 60_000;
+
+export function getImportSearchTimeoutMs(): number {
+  const envVal = process.env.WIGLE_IMPORT_SEARCH_TIMEOUT_MS;
+  if (envVal !== undefined && envVal !== '') {
+    const parsed = Number(envVal);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return DEFAULT_IMPORT_SEARCH_TIMEOUT_MS;
+}
+
+// Log effective timeout once at startup so deployment configuration is auditable
+logger.info(`[WiGLE Search] Effective import-run search timeout: ${getImportSearchTimeoutMs()}ms`);
+
 async function fetchWigleSearchPage(options: {
   encodedAuth: string;
   apiVer: 'v2';
@@ -46,10 +62,12 @@ async function fetchWigleSearchPage(options: {
     `[WiGLE][${apiVer}/network/search][PRE] sending request | url=${apiUrl} | params=${JSON.stringify(paramsObj)}`
   );
 
+  const timeoutMs = entrypoint === 'import-run' ? getImportSearchTimeoutMs() : 30000;
+
   const gatewayResult = await wigleGatewayFetch({
     kind: 'search',
     url: apiUrl,
-    timeoutMs: 30000,
+    timeoutMs,
     maxRetries: entrypoint === 'import-run' ? 0 : 1,
     label: 'WiGLE Search API',
     entrypoint,
@@ -70,6 +88,8 @@ async function fetchWigleSearchPage(options: {
     );
     const error: any = new Error(gatewayResult.error);
     error.status = gatewayResult.status;
+    error.isTimeout = gatewayResult.isTimeout;
+    error.code = gatewayResult.code;
     throw error;
   }
 

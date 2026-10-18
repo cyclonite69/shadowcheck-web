@@ -109,6 +109,20 @@ describe('wigleImportRunRepository', () => {
       expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [1, 'paused']);
       expect(result).toEqual(mockRun);
     });
+
+    it('should update run status and last_error when errorMessage is provided', async () => {
+      const mockRun = { id: 1, status: 'paused', last_error: 'transient timeout' };
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
+
+      const result = await repository.markRunControlStatus(1, 'paused', 'transient timeout');
+
+      expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [
+        1,
+        'paused',
+        'transient timeout',
+      ]);
+      expect(result).toEqual(mockRun);
+    });
   });
 
   describe('resumeRunState', () => {
