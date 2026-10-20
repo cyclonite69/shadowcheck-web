@@ -163,6 +163,55 @@ describe('wigle enrichment routes', () => {
     expect(mockWigleEnrichmentService.resumeEnrichment).toHaveBeenCalledWith(9);
   });
 
+  describe('resumeEnrichment error status mapping (R7)', () => {
+    it('returns 400 when resumeEnrichment rejects with 400 (e.g. targeted run without target list)', async () => {
+      const error: any = new Error(
+        'Cannot resume targeted enrichment run #427 without a persisted target list. Please start a new run.'
+      );
+      error.status = 400;
+      mockWigleEnrichmentService.resumeEnrichment.mockRejectedValue(error);
+
+      const response = await request(app).post('/wigle/enrichment/resume/427').send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        ok: false,
+        error:
+          'Cannot resume targeted enrichment run #427 without a persisted target list. Please start a new run.',
+      });
+    });
+
+    it('returns 404 when resumeEnrichment rejects with 404 (run not found)', async () => {
+      const error: any = new Error('Run #999 not found');
+      error.status = 404;
+      mockWigleEnrichmentService.resumeEnrichment.mockRejectedValue(error);
+
+      const response = await request(app).post('/wigle/enrichment/resume/999').send({});
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'Run #999 not found',
+      });
+    });
+
+    it('returns 409 when resumeEnrichment conflicts with an active run', async () => {
+      const error: any = new Error('Enrichment run #55 is already active');
+      error.status = 409;
+      error.code = 'ENRICHMENT_CONFLICT';
+      mockWigleEnrichmentService.resumeEnrichment.mockRejectedValue(error);
+
+      const response = await request(app).post('/wigle/enrichment/resume/10').send({});
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'Enrichment run #55 is already active',
+        code: 'ENRICHMENT_CONFLICT',
+      });
+    });
+  });
+
   it('force-clears an enrichment run by id', async () => {
     mockWigleEnrichmentService.forceClearEnrichmentRun.mockResolvedValue({ cleared: true });
 

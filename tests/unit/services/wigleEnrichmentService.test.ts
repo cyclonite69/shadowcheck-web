@@ -186,25 +186,115 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
       expect(err.message).toContain('55');
     });
 
-    it('throws when run is not found', async () => {
+    it('R1: throws 404 when run is not found and does not call loop', async () => {
       mockAdminQuery
         .mockResolvedValueOnce({ rows: [] }) // no conflict
-        .mockResolvedValueOnce({ rows: [] }); // resetRunForResume returns nothing
-      await expect(resumeEnrichment(10)).rejects.toThrow('Run not found');
+        .mockResolvedValueOnce({ rows: [] }); // run query returns nothing
+      const err: any = await resumeEnrichment(999).catch((e: any) => e);
+      expect(err.status).toBe(404);
+      expect(err.message).toMatch(/not found/i);
+      expect(mockGetImportRun).not.toHaveBeenCalled();
     });
 
-    it('returns the resumed run row and fires the loop', async () => {
-      const mockRow = { id: 10, status: 'running' };
+    it('R2: rejects run whose source is not v3_manual/v3_batch and does not call resetRunForResume or loop', async () => {
       mockAdminQuery
         .mockResolvedValueOnce({ rows: [] }) // no conflict
-        .mockResolvedValueOnce({ rows: [mockRow] }); // resetRunForResume
-      mockGetImportRun.mockResolvedValue({ id: 10, status: 'completed' }); // loop exits immediately
+        .mockResolvedValueOnce({ rows: [{ id: 423, source: 'wigle_bt', status: 'paused' }] }); // run is wigle_bt
+      const err: any = await resumeEnrichment(423).catch((e: any) => e);
+      expect(err.status).toBe(400);
+      expect(err.message).toMatch(/Cannot resume non-enrichment import run/i);
+      expect(mockAdminQuery).toHaveBeenCalledTimes(2); // no 3rd call to resetRunForResume
+      expect(mockGetImportRun).not.toHaveBeenCalled();
+    });
+
+    it('R3: rejects run with status completed or running and starts nothing', async () => {
+      // completed
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [] }) // no conflict
+        .mockResolvedValueOnce({ rows: [{ id: 426, source: 'v3_batch', status: 'completed' }] });
+      const errComp: any = await resumeEnrichment(426).catch((e: any) => e);
+      expect(errComp.status).toBe(400);
+      expect(errComp.message).toMatch(/already completed/i);
+
+      // running
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [] }) // no conflict
+        .mockResolvedValueOnce({ rows: [{ id: 427, source: 'v3_batch', status: 'running' }] });
+      const errRun: any = await resumeEnrichment(427).catch((e: any) => e);
+      expect(errRun.status).toBe(400);
+      expect(errRun.message).toMatch(/already running/i);
+
+      expect(mockGetImportRun).not.toHaveBeenCalled();
+    });
+
+    it('R4: rejects targeted run (v3_manual) with no persisted target list with clear message to start a new run', async () => {
+      // A paused 427-shaped row fixture
+      const paused427Fixture = {
+        id: 427,
+        source: 'v3_manual',
+        status: 'paused',
+        search_term: 'Targeted Enrichment (12 items)',
+        request_params: {
+          source: 'v3_manual',
+          version: 'v3',
+          searchTerm: 'Targeted Enrichment (12 items)',
+          pendingItems: 12,
+          resultsPerPage: 1,
+        },
+      };
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [] }) // no conflict
+        .mockResolvedValueOnce({ rows: [paused427Fixture] }); // load run
+
+      const err: any = await resumeEnrichment(427).catch((e: any) => e);
+      expect(err.status).toBe(400);
+      expect(err.message).toContain('start a new run');
+      expect(mockAdminQuery).toHaveBeenCalledTimes(2); // resetRunForResume NOT called
+      expect(mockGetImportRun).not.toHaveBeenCalled();
+    });
+
+    it('R5: resumes full-backlog run (v3_batch) in paused state and calls runEnrichmentLoop with no list', async () => {
+      const pausedBatchRun = {
+        id: 500,
+        source: 'v3_batch',
+        status: 'paused',
+        search_term: 'Full Catalog Enrichment',
+        request_params: { source: 'v3_batch', version: 'v3' },
+      };
+      const resumedRow = { id: 500, source: 'v3_batch', status: 'running' };
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [] }) // no conflict
+        .mockResolvedValueOnce({ rows: [pausedBatchRun] }) // load run
+        .mockResolvedValueOnce({ rows: [resumedRow] }); // resetRunForResume
+      mockGetImportRun.mockResolvedValue({ id: 500, status: 'completed' }); // loop exits immediately
       mockAdminQuery
         .mockResolvedValueOnce({ rows: [{ status: 'completed' }] }) // getRunStatus inside loop
         .mockResolvedValueOnce({ rows: [] }); // getNextEnrichmentBatch
 
-      const result = await resumeEnrichment(10);
-      expect(result).toEqual(mockRow);
+      const result = await resumeEnrichment(500);
+      expect(result).toEqual(resumedRow);
+    });
+
+    it('R5: resumes full-backlog run (v3_batch) in failed state (per JSDoc)', async () => {
+      const failedBatchRun = {
+        id: 501,
+        source: 'v3_batch',
+        status: 'failed',
+        search_term: 'Full Catalog Enrichment',
+        request_params: { source: 'v3_batch', version: 'v3' },
+      };
+      const resumedRow = { id: 501, source: 'v3_batch', status: 'running' };
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [] }) // no conflict
+        .mockResolvedValueOnce({ rows: [failedBatchRun] }) // load run
+        .mockResolvedValueOnce({ rows: [resumedRow] }); // resetRunForResume
+      mockGetImportRun.mockResolvedValue({ id: 501, status: 'completed' }); // loop exits immediately
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [{ status: 'completed' }] }) // getRunStatus inside loop
+        .mockResolvedValueOnce({ rows: [] }); // getNextEnrichmentBatch
+
+      const result = await resumeEnrichment(501);
+      expect(result).toEqual(resumedRow);
     });
   });
 

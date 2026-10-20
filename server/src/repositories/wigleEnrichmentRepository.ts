@@ -8,6 +8,7 @@ export {
   countFieldObservationsMissingV3Detail,
   getActiveEnrichmentRunId,
   getEnrichmentCatalog,
+  getEnrichmentRun,
   getNextEnrichmentBatch,
   getPendingEnrichmentCount,
   getRunStatus,
@@ -45,9 +46,13 @@ export async function forceClearRun(runId: number): Promise<boolean> {
   return (rowCount ?? 0) > 0;
 }
 
+/**
+ * Atomically reset a paused or failed v3_batch enrichment run to running.
+ * Status must be 'paused' or 'failed', and source must be 'v3_batch'.
+ */
 export async function resetRunForResume(runId: number): Promise<any | null> {
   const { rows } = await adminQuery(
-    "UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 RETURNING *",
+    "UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 AND status IN ('paused', 'failed') AND source = 'v3_batch' RETURNING *",
     [runId]
   );
   return rows[0] ?? null;

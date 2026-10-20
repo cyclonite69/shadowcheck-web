@@ -213,3 +213,18 @@ export async function getRunStatus(runId: number): Promise<string | null> {
   ]);
   return rows[0]?.status ?? null;
 }
+
+/** Load run metadata for enrichment resume validation. */
+export async function getEnrichmentRun(runId: number): Promise<{
+  id: number;
+  source: string;
+  status: string;
+  search_term: string | null;
+  request_params: any;
+} | null> {
+  const { rows } = await adminQuery(
+    'SELECT id, source, status, search_term, request_params FROM app.wigle_import_runs WHERE id = $1',
+    [runId]
+  );
+  return rows[0] ?? null;
+}

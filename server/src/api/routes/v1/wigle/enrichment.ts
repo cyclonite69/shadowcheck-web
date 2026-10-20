@@ -85,10 +85,31 @@ router.post(
 router.post(
   '/enrichment/resume/:runId',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const run = await wigleEnrichmentService.resumeEnrichment(Number(req.params.runId));
-    res.json({ ok: true, run });
-  })
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const runId = Number(req.params.runId);
+      if (!Number.isFinite(runId) || runId <= 0) {
+        return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
+      const run = await wigleEnrichmentService.resumeEnrichment(runId);
+      res.json({ ok: true, run });
+    } catch (err: any) {
+      if (err?.status === 400) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (err?.status === 404) {
+        return res.status(404).json({ ok: false, error: err.message });
+      }
+      if (err?.status === 409) {
+        return res.status(409).json({
+          ok: false,
+          error: err.message,
+          code: err.code || 'ENRICHMENT_CONFLICT',
+        });
+      }
+      next(err);
+    }
+  }
 );
 
 /**

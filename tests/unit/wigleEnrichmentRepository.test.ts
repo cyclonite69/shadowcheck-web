@@ -16,6 +16,7 @@ const {
   getEnrichmentCatalog,
   getNextEnrichmentBatch,
   getPendingEnrichmentCount,
+  resetRunForResume,
 } = require('../../server/src/repositories/wigleEnrichmentRepository');
 
 describe('wigleEnrichmentRepository.getEnrichmentCatalog', () => {
@@ -438,5 +439,25 @@ describe('getPendingEnrichmentCount SQL lock (T3)', () => {
     const sql = container.adminDbService.adminQuery.mock.calls[0][0];
     expect(sql).toContain('app.wigle_v2_networks_search');
     expect(sql).not.toContain('app.wigle_v2_bluetooth_search');
+  });
+});
+
+describe('resetRunForResume SQL lock (R6)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('has a status predicate and a source predicate in the WHERE clause, and returns null when no row matches', async () => {
+    container.adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
+    const result = await resetRunForResume(427);
+
+    expect(result).toBeNull();
+    expect(container.adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    const [sql, params] = container.adminDbService.adminQuery.mock.calls[0];
+    expect(params).toEqual([427]);
+    expect(sql).toContain('UPDATE app.wigle_import_runs');
+    expect(sql).toContain("status = 'running'");
+    expect(sql).toMatch(/status\s+IN\s+\('paused',\s*'failed'\)/i);
+    expect(sql).toMatch(/source\s*=\s*'v3_batch'|source\s+IN\s+\('v3_batch'\)/i);
   });
 });
