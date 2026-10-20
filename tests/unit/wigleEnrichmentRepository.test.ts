@@ -12,7 +12,11 @@ jest.mock('../../server/src/config/container', () => ({
 }));
 
 const container = require('../../server/src/config/container');
-const { getEnrichmentCatalog } = require('../../server/src/repositories/wigleEnrichmentRepository');
+const {
+  getEnrichmentCatalog,
+  getNextEnrichmentBatch,
+  getPendingEnrichmentCount,
+} = require('../../server/src/repositories/wigleEnrichmentRepository');
 
 describe('wigleEnrichmentRepository.getEnrichmentCatalog', () => {
   beforeEach(() => {
@@ -349,5 +353,90 @@ describe('wigleEnrichmentRepository.getEnrichmentCatalog', () => {
       expect(countCall[1]).toContain('CA%');
       expect(countCall[1]).toContain('%Test%');
     });
+  });
+
+  describe('catalog Bluetooth inclusion (T4)', () => {
+    it('includes BT rows, deduped by bssid, total includes BT, existing filters/sort/pagination apply to both halves', async () => {
+      container.adminDbService.adminQuery
+        .mockResolvedValueOnce({
+          rows: [{ bssid: '5F:B2:17:57:D5:D3', type: 'BLE', ssid: 'BT-Tag' }],
+        })
+        .mockResolvedValueOnce({ rows: [{ count: 1 }] });
+
+      const result = await getEnrichmentCatalog({
+        region: 'CA',
+        city: 'SF',
+        ssid: 'BT',
+        bssid: '5F:B2',
+        sortBy: 'lasttime',
+        sortDir: 'desc',
+        page: 1,
+        limit: 25,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+
+      const [dataSql, dataParams] = container.adminDbService.adminQuery.mock.calls[0];
+      const [countSql, countParams] = container.adminDbService.adminQuery.mock.calls[1];
+
+      // Data query checks
+      expect(dataSql).toContain('app.wigle_v2_networks_search');
+      expect(dataSql).toContain('app.wigle_v2_bluetooth_search');
+      expect(dataSql).toContain('DISTINCT ON (bssid)');
+      expect(dataSql).toContain('name AS ssid');
+
+      // Count query checks
+      expect(countSql).toContain('app.wigle_v2_networks_search');
+      expect(countSql).toContain('app.wigle_v2_bluetooth_search');
+      expect(countSql).toContain('COUNT(DISTINCT bssid)');
+
+      // Filter params applied
+      expect(dataParams).toEqual(expect.arrayContaining([25, 0, 'CA%', 'SF%', '%BT%', '5F:B2%']));
+      expect(countParams).toEqual(expect.arrayContaining(['CA%', 'SF%', '%BT%', '5F:B2%']));
+    });
+  });
+});
+
+describe('getNextEnrichmentBatch SQL lock (T3)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('WITH a list references both tables', async () => {
+    container.adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
+    await getNextEnrichmentBatch(10, ['AA:BB:CC:DD:EE:FF']);
+
+    expect(container.adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    const sql = container.adminDbService.adminQuery.mock.calls[0][0];
+    expect(sql).toContain('app.wigle_v2_networks_search');
+    expect(sql).toContain('app.wigle_v2_bluetooth_search');
+  });
+
+  it('WITHOUT a list references ONLY wigle_v2_networks_search', async () => {
+    container.adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
+    await getNextEnrichmentBatch(10);
+
+    expect(container.adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    const sql = container.adminDbService.adminQuery.mock.calls[0][0];
+    expect(sql).toContain('app.wigle_v2_networks_search');
+    expect(sql).not.toContain('app.wigle_v2_bluetooth_search');
+  });
+});
+
+describe('getPendingEnrichmentCount SQL lock (T3)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('stays Wi-Fi-only referencing only wigle_v2_networks_search', async () => {
+    container.adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ count: 42 }] });
+    const count = await getPendingEnrichmentCount();
+
+    expect(count).toBe(42);
+    expect(container.adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    const sql = container.adminDbService.adminQuery.mock.calls[0][0];
+    expect(sql).toContain('app.wigle_v2_networks_search');
+    expect(sql).not.toContain('app.wigle_v2_bluetooth_search');
   });
 });

@@ -243,6 +243,27 @@ describe('WiGLE Enrichment Service', () => {
       expect(runRepo.completeRun).toHaveBeenCalledWith(runId);
     });
 
+    it('targeted run with a U/L-bit BT MAC (5f:b2:17:57:d5:d3) is not skipped', async () => {
+      const manual = ['5f:b2:17:57:d5:d3'];
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
+        .mockResolvedValueOnce([{ bssid: '5F:B2:17:57:D5:D3', type: 'BLE' }])
+        .mockResolvedValue([]);
+      jest
+        .mocked(fetchAndImportDetail)
+        .mockResolvedValue({ bssid: '5F:B2:17:57:D5:D3', obsCount: 1 });
+
+      await runEnrichmentLoop(runId, manual);
+
+      expect(readRepo.getNextEnrichmentBatch).toHaveBeenCalledWith(1, manual);
+      expect(fetchAndImportDetail).toHaveBeenCalledWith('5F:B2:17:57:D5:D3', 'BLE');
+      expect(writeRepo.incrementRunProgress).toHaveBeenCalledWith(runId);
+      expect(runRepo.completeRun).toHaveBeenCalledWith(runId);
+      expect(runRepo.markRunFailure).not.toHaveBeenCalled();
+    });
+
     it('should mark manual run failed when every targeted BSSID fails', async () => {
       jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
       jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');

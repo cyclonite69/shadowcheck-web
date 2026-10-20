@@ -89,7 +89,9 @@ export const inferWigleEndpoint = (networkType: string | null | undefined): 'wif
   const normalized = String(networkType || '')
     .trim()
     .toUpperCase();
-  return normalized === 'B' || normalized === 'E' ? 'bt' : 'wifi';
+  return normalized === 'B' || normalized === 'E' || /^(BT|BLE)(_[A-Z0-9_]+)?$/.test(normalized)
+    ? 'bt'
+    : 'wifi';
 };
 
 export function parseIncludeTotalFlag(value: any): {

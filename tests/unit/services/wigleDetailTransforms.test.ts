@@ -212,6 +212,31 @@ describe('mapCachedDetailToApiShape', () => {
 });
 
 describe('inferWigleEndpoint', () => {
+  it('returns "bt" for "BT", "BLE", "ble", " BLE "', () => {
+    expect(inferWigleEndpoint('BT')).toBe('bt');
+    expect(inferWigleEndpoint('BLE')).toBe('bt');
+    expect(inferWigleEndpoint('ble')).toBe('bt');
+    expect(inferWigleEndpoint(' BLE ')).toBe('bt');
+  });
+
+  it('returns "bt" for raw WiGLE BT strings "BT_LE", "BT_CLASSIC", "bt_le", " BLE_X "', () => {
+    expect(inferWigleEndpoint('BT_LE')).toBe('bt');
+    expect(inferWigleEndpoint('BT_CLASSIC')).toBe('bt');
+    expect(inferWigleEndpoint('bt_le')).toBe('bt');
+    expect(inferWigleEndpoint(' BLE_X ')).toBe('bt');
+  });
+
+  it('returns "wifi" for "BSS", "BRIDGE", "BTX", "infra", "W", null, undefined, ""', () => {
+    expect(inferWigleEndpoint('BSS')).toBe('wifi');
+    expect(inferWigleEndpoint('BRIDGE')).toBe('wifi');
+    expect(inferWigleEndpoint('BTX')).toBe('wifi');
+    expect(inferWigleEndpoint('infra')).toBe('wifi');
+    expect(inferWigleEndpoint('W')).toBe('wifi');
+    expect(inferWigleEndpoint(null)).toBe('wifi');
+    expect(inferWigleEndpoint(undefined)).toBe('wifi');
+    expect(inferWigleEndpoint('')).toBe('wifi');
+  });
+
   it('returns "bt" for type "B"', () => {
     expect(inferWigleEndpoint('B')).toBe('bt');
   });
@@ -222,22 +247,6 @@ describe('inferWigleEndpoint', () => {
 
   it('returns "bt" for lowercase "b"', () => {
     expect(inferWigleEndpoint('b')).toBe('bt');
-  });
-
-  it('returns "wifi" for type "W"', () => {
-    expect(inferWigleEndpoint('W')).toBe('wifi');
-  });
-
-  it('returns "wifi" for null', () => {
-    expect(inferWigleEndpoint(null)).toBe('wifi');
-  });
-
-  it('returns "wifi" for undefined', () => {
-    expect(inferWigleEndpoint(undefined)).toBe('wifi');
-  });
-
-  it('returns "wifi" for empty string', () => {
-    expect(inferWigleEndpoint('')).toBe('wifi');
   });
 
   it('returns "wifi" for unknown type', () => {

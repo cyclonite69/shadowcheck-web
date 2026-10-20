@@ -6,6 +6,7 @@ import {
   importDetailFromJson,
   getNetworkTypesByBssids,
 } from '../../../server/src/services/wigleDetailService';
+import { fetchAndImportDetail } from '../../../server/src/services/wigleEnrichmentFetcher';
 import type { NetworkTypeRow } from '../../../server/src/repositories/networkRepository';
 
 // Mock dependencies
@@ -621,6 +622,60 @@ describe('wigleDetailService', () => {
       const result = await getNetworkTypesByBssids(['AA:BB:CC:DD:EE:FF']);
       expect(mockGetNetworkTypesByBssids).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:FF']);
       expect(result).toEqual([{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }]);
+    });
+  });
+
+  describe('fetchAndImportDetail URL generation (T2)', () => {
+    beforeEach(() => {
+      secretsManager.get.mockImplementation((k: string) =>
+        k === 'wigle_api_name' ? 'test_user' : 'test_token'
+      );
+      (getEncodedWigleAuth as any).mockReturnValue('dGVzdDp0b2tlbg==');
+      (getRecentWigleDetailImport as any).mockResolvedValue(null);
+      (getWigleDetail as any).mockResolvedValue(null);
+      (importWigleV3NetworkDetail as any).mockResolvedValue(undefined);
+      (importWigleV3ObservationRow as any).mockResolvedValue(1);
+      (getWigleObservations as any).mockResolvedValue({ total: 1 });
+      (wigleGatewayFetch as any).mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            networkId: '5F:B2:17:57:D5:D3',
+            locationClusters: [],
+          }),
+        },
+      });
+    });
+
+    it('builds /api/v3/detail/bt/ for BLE network type', async () => {
+      await fetchAndImportDetail('5F:B2:17:57:D5:D3', 'BLE');
+      expect(wigleGatewayFetch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://api.wigle.net/api/v3/detail/bt/5F:B2:17:57:D5:D3',
+        })
+      );
+    });
+
+    it('builds /api/v3/detail/wifi/ for W network type', async () => {
+      (wigleGatewayFetch as any).mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            networkId: '00:11:22:33:44:55',
+            locationClusters: [],
+          }),
+        },
+      });
+      await fetchAndImportDetail('00:11:22:33:44:55', 'W');
+      expect(wigleGatewayFetch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://api.wigle.net/api/v3/detail/wifi/00:11:22:33:44:55',
+        })
+      );
     });
   });
 });

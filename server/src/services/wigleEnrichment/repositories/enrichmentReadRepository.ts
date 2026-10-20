@@ -111,7 +111,13 @@ export async function getEnrichmentCatalog(options: {
          (SELECT ROUND(AVG(o.signal))::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid AND o.signal IS NOT NULL) AS signal
        FROM (
          SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, firsttime, lasttime
-         FROM app.wigle_v2_networks_search
+         FROM (
+           SELECT bssid, ssid, region, city, type, firsttime, lasttime
+           FROM app.wigle_v2_networks_search
+           UNION ALL
+           SELECT bssid, name AS ssid, region, city, type, firsttime, lasttime
+           FROM app.wigle_v2_bluetooth_search
+         ) combined
          ${mainWhere}
          ORDER BY bssid, lasttime DESC
        ) v2
@@ -121,7 +127,11 @@ export async function getEnrichmentCatalog(options: {
       [limit, offset, ...filterParams]
     ),
     adminQuery(
-      `SELECT COUNT(DISTINCT bssid)::int FROM app.wigle_v2_networks_search ${countWhere}`,
+      `SELECT COUNT(DISTINCT bssid)::int FROM (
+         SELECT bssid, ssid, region, city FROM app.wigle_v2_networks_search
+         UNION ALL
+         SELECT bssid, name AS ssid, region, city FROM app.wigle_v2_bluetooth_search
+       ) combined ${countWhere}`,
       countParams
     ),
   ]);
@@ -140,8 +150,15 @@ export async function getNextEnrichmentBatch(
     const normalizedList = manualList.map((b) => b.trim().toUpperCase());
     const { rows } = await adminQuery(
       `SELECT DISTINCT ON (bssid) bssid, type
-       FROM app.wigle_v2_networks_search
-       WHERE TRIM(UPPER(bssid)) = ANY($2::text[])
+       FROM (
+         SELECT bssid, type, lasttime
+         FROM app.wigle_v2_networks_search
+         WHERE TRIM(UPPER(bssid)) = ANY($2::text[])
+         UNION ALL
+         SELECT bssid, type, lasttime
+         FROM app.wigle_v2_bluetooth_search
+         WHERE TRIM(UPPER(bssid)) = ANY($2::text[])
+       ) combined
        ORDER BY bssid, lasttime DESC
        LIMIT $1`,
       [limit, normalizedList]
