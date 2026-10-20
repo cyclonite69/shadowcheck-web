@@ -46,7 +46,6 @@ router.post(
     const results: Array<{
       bssid: string;
       success: boolean;
-      skipped?: boolean;
       importedObservations?: number;
       error?: string;
     }> = [];
@@ -70,13 +69,6 @@ router.post(
             success: true,
             importedObservations: result.importedObservations,
           });
-        } else if (result.skipped) {
-          results.push({
-            bssid,
-            success: false,
-            skipped: true,
-            error: result.error,
-          });
         } else {
           results.push({ bssid, success: false, error: result.error });
         }
@@ -86,8 +78,7 @@ router.post(
     }
 
     const succeeded = results.filter((r) => r.success).length;
-    const skipped = results.filter((r) => r.skipped).length;
-    const failed = results.filter((r) => !r.success && !r.skipped).length;
+    const failed = results.filter((r) => !r.success).length;
     const totalImported = results.reduce((sum, r) => sum + (r.importedObservations || 0), 0);
 
     res.json({
@@ -96,7 +87,6 @@ router.post(
       summary: {
         total: cleanBssids.length,
         succeeded,
-        skipped,
         failed,
         totalImported,
       },

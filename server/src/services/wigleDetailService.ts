@@ -35,21 +35,7 @@ export interface DetailError {
   ok: false;
   error: string;
   status: number;
-  skipped?: boolean;
   details?: string;
-}
-
-/**
- * Check if a MAC address (BSSID) is locally administered (randomized).
- * The 2nd hex digit of the first octet will be 2, 3, 6, 7, A, B, E, or F.
- */
-export function isLocallyAdministeredMac(mac: string): boolean {
-  const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
-  if (clean.length < 2) {
-    return false;
-  }
-  const firstByte = parseInt(clean.substring(0, 2), 16);
-  return (firstByte & 0x02) !== 0;
 }
 
 export type DetailQuerySource = 'manual' | 'batch' | 'enrichment';
@@ -68,17 +54,6 @@ export async function fetchUpstream(
 
   if (!wigleApiName || !wigleApiToken) {
     return { ok: false, status: 503, error: 'WiGLE API credentials not configured' };
-  }
-
-  if (query_source !== 'manual' && isLocallyAdministeredMac(netid)) {
-    const skipMessage = `Not queried: locally-administered MAC skipped for ${query_source} lookups`;
-    logger.info(`[WiGLE][v3/detail/${endpoint}][SKIPPED] ${skipMessage}: ${netid}`);
-    return {
-      ok: false,
-      status: 422,
-      skipped: true,
-      error: skipMessage,
-    };
   }
 
   const encodedAuth = getEncodedWigleAuth();

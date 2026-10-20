@@ -204,18 +204,6 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
     const data = detailResponse.ok ? detailResponse.data : null;
     const detailStatus: number = detailResponse.ok ? 200 : detailResponse.status;
 
-    if (!detailResponse.ok && detailResponse.skipped) {
-      return {
-        ok: true,
-        bssid: orphan.bssid,
-        status: 'not_attempted',
-        skipped: true,
-        endpoint,
-        importedObservations: 0,
-        message: detailResponse.error,
-      };
-    }
-
     // Check if payload has actual observation data. networkId alone is not sufficient —
     // WiGLE echoes the queried ID back even when it has no location data for the network.
     // Clusters may exist but contain zero location points — count actual locations to be sure.

@@ -35,19 +35,6 @@ describe('wigleEnrichmentFetcher', () => {
     expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true, 'enrichment');
   });
 
-  it('returns null when fetchOrImportDetail reports skipped', async () => {
-    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 422,
-      skipped: true,
-      error: 'Not queried: locally-administered MAC skipped for enrichment lookups',
-    });
-
-    const result = await fetchAndImportDetail(bssid, type);
-    expect(result).toBeNull();
-    expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true, 'enrichment');
-  });
-
   it('throws when a successful detail response has no networkId', async () => {
     (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: true,

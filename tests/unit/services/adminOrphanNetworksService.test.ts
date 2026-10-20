@@ -203,34 +203,6 @@ describe('adminOrphanNetworksService', () => {
       expect(calls[1][1]).toEqual(['00:11:22', 'no_wigle_match', null, false, 0, null]);
     });
 
-    it('should handle skipped result without writing no_wigle_match', async () => {
-      adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '0E:FE:7B:78:FC:79', type: 'WIFI' }] });
-      fetchUpstream.mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        skipped: true,
-        error: 'Not queried: locally-administered MAC skipped',
-      });
-
-      const res = await backfillOrphanNetworkFromWigle('0E:FE:7B:78:FC:79');
-      expect(fetchUpstream).toHaveBeenCalledWith('0E:FE:7B:78:FC:79', 'wifi', 'manual');
-      expect(res).toEqual({
-        ok: true,
-        bssid: '0E:FE:7B:78:FC:79',
-        status: 'not_attempted',
-        skipped: true,
-        endpoint: 'wifi',
-        importedObservations: 0,
-        message: 'Not queried: locally-administered MAC skipped',
-      });
-
-      // Crucial: adminQuery should only have been called ONCE (the SELECT), NOT for recordBackfillAttempt!
-      const calls = adminQuery.mock.calls;
-      expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toContain('SELECT bssid, ssid, type');
-      expect(calls[0][0]).toContain('FROM app.networks_orphans');
-    });
-
     it('should return error on API non-ok status', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
       fetchUpstream.mockResolvedValueOnce({

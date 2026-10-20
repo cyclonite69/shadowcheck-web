@@ -4,7 +4,6 @@ import {
   importObservations,
   fetchOrImportDetail,
   importDetailFromJson,
-  isLocallyAdministeredMac,
   getNetworkTypesByBssids,
 } from '../../../server/src/services/wigleDetailService';
 import type { NetworkTypeRow } from '../../../server/src/repositories/networkRepository';
@@ -100,14 +99,6 @@ describe('wigleDetailService', () => {
       });
     });
 
-    it('identifies locally administered (randomized) MAC addresses correctly', () => {
-      expect(isLocallyAdministeredMac('0E:FE:7B:78:FC:79')).toBe(true);
-      expect(isLocallyAdministeredMac('0EFE7B78FC79')).toBe(true);
-      expect(isLocallyAdministeredMac('00:14:3E:4A:67:A0')).toBe(false);
-      expect(isLocallyAdministeredMac('44:C7:00:56:49:FC')).toBe(false);
-      expect(isLocallyAdministeredMac('a')).toBe(false);
-    });
-
     it('calls gateway and does not short-circuit for manual single lookups of locally administered MACs', async () => {
       secretsManager.get.mockImplementation((key: string) => {
         if (key === 'wigle_api_name') {
@@ -139,7 +130,7 @@ describe('wigleDetailService', () => {
       expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('skips gateway and returns 422 with skipped flag for non-manual queries of locally administered MACs', async () => {
+    it('invokes gateway and does not skip for batch lookups of BT MAC with U/L bit (5f:b2:17:57:d5:d3)', async () => {
       secretsManager.get.mockImplementation((key: string) => {
         if (key === 'wigle_api_name') {
           return 'some-name';
@@ -148,19 +139,85 @@ describe('wigleDetailService', () => {
           return 'some-token';
         }
         return null;
+      });
+
+      const mockData = { networkId: '5f:b2:17:57:d5:d3', type: 'BLE' };
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: (jest.fn() as any).mockResolvedValue(mockData),
+        },
+      });
+
+      const result = await fetchUpstream('5f:b2:17:57:d5:d3', 'bt', 'batch');
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes gateway and does not skip for batch lookups of WiFi MAC with U/L bit (5f:b2:17:57:d5:d3)', async () => {
+      secretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
+        return null;
+      });
+
+      const mockData = { networkId: '5f:b2:17:57:d5:d3', type: 'infra' };
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: (jest.fn() as any).mockResolvedValue(mockData),
+        },
+      });
+
+      const result = await fetchUpstream('5f:b2:17:57:d5:d3', 'wifi', 'batch');
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes gateway and does not skip for enrichment queries of locally administered MACs', async () => {
+      secretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
+        return null;
+      });
+
+      const mockData = { networkId: '0E:FE:7B:78:FC:79', type: 'infra' };
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: (jest.fn() as any).mockResolvedValue(mockData),
+        },
       });
 
       const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi', 'enrichment');
       expect(result).toEqual({
-        ok: false,
-        status: 422,
-        skipped: true,
-        error: 'Not queried: locally-administered MAC skipped for enrichment lookups',
+        ok: true,
+        data: mockData,
       });
-      expect(wigleGatewayFetch).not.toHaveBeenCalled();
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('skips gateway and returns 422 with skipped flag for batch queries of locally administered MACs', async () => {
+    it('invokes gateway and does not skip for manual lookups of BT MAC with U/L bit', async () => {
       secretsManager.get.mockImplementation((key: string) => {
         if (key === 'wigle_api_name') {
           return 'some-name';
@@ -171,14 +228,51 @@ describe('wigleDetailService', () => {
         return null;
       });
 
-      const result = await fetchUpstream('0E:FE:7B:78:FC:79', 'wifi', 'batch');
-      expect(result).toEqual({
-        ok: false,
-        status: 422,
-        skipped: true,
-        error: 'Not queried: locally-administered MAC skipped for batch lookups',
+      const mockData = { networkId: '5f:b2:17:57:d5:d3', type: 'BLE' };
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: (jest.fn() as any).mockResolvedValue(mockData),
+        },
       });
-      expect(wigleGatewayFetch).not.toHaveBeenCalled();
+
+      const result = await fetchUpstream('5f:b2:17:57:d5:d3', 'bt', 'manual');
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes gateway and does not skip for batch lookups of universally administered MACs', async () => {
+      secretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
+        return null;
+      });
+
+      const mockData = { networkId: '00:14:3E:4A:67:A0', type: 'infra' };
+      wigleGatewayFetch.mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: (jest.fn() as any).mockResolvedValue(mockData),
+        },
+      });
+
+      const result = await fetchUpstream('00:14:3E:4A:67:A0', 'wifi', 'batch');
+      expect(result).toEqual({
+        ok: true,
+        data: mockData,
+      });
+      expect(wigleGatewayFetch).toHaveBeenCalledTimes(1);
     });
 
     it('returns error if gateway fetch fails', async () => {
@@ -489,6 +583,33 @@ describe('wigleDetailService', () => {
         failedObservations: 0,
       });
       expect(importWigleV3NetworkDetail).toHaveBeenCalled();
+    });
+
+    it('stores uppercase netid matching v2.bssid when given a lowercase BT networkId', async () => {
+      const lowercaseBtJson = {
+        networkId: 'c5:40:04:7a:37:d7',
+        name: 'BT Device',
+        type: 'BLE',
+        locationClusters: [
+          {
+            clusterSsid: 'BT Device',
+            locations: [{ latitude: 42.12, longitude: -71.34, time: '2026-05-01' }],
+          },
+        ],
+      };
+
+      importWigleV3NetworkDetail.mockResolvedValue(undefined);
+      importWigleV3ObservationRow.mockResolvedValue(1);
+      getWigleObservations.mockResolvedValue({ total: 1 });
+
+      const result = await importDetailFromJson(lowercaseBtJson);
+      expect(result.ok).toBe(true);
+
+      expect(importWigleV3NetworkDetail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          netid: 'C5:40:04:7A:37:D7',
+        })
+      );
     });
   });
 

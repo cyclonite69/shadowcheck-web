@@ -101,19 +101,27 @@ describe('wigleDetailService', () => {
       expect(wigleGatewayFetch).toHaveBeenCalled();
     });
 
-    it('skips gateway and returns 422 with skipped flag for background queries of locally administered MACs', async () => {
+    it('invokes gateway for background/enrichment queries of locally administered MACs without skipping', async () => {
       const laaNetid = '02:00:00:00:00:01';
+      const mockData = { networkId: laaNetid, name: 'Background LAA Network' };
       (secretsManager.get as jest.Mock).mockReturnValue('some-val');
+      (getEncodedWigleAuth as jest.Mock).mockReturnValue('encoded-auth');
+      (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => mockData,
+        },
+      });
 
       const result = await fetchUpstream(laaNetid, 'wifi', 'enrichment');
 
       expect(result).toEqual({
-        ok: false,
-        status: 422,
-        skipped: true,
-        error: 'Not queried: locally-administered MAC skipped for enrichment lookups',
+        ok: true,
+        data: mockData,
       });
-      expect(wigleGatewayFetch).not.toHaveBeenCalled();
+      expect(wigleGatewayFetch).toHaveBeenCalled();
     });
 
     it('returns error if gateway fetch fails', async () => {

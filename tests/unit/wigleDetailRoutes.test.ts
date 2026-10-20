@@ -85,44 +85,8 @@ describe('WiGLE Detail & Import Routes', () => {
       expect(res.body.summary).toEqual({
         total: 2,
         succeeded: 1,
-        skipped: 0,
         failed: 1,
         totalImported: 5,
-      });
-    });
-
-    it('reports skipped items distinctly in batch results and summary', async () => {
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ bssid: '0E:FE:7B:78:FC:79', type: 'W' }],
-      });
-      mockInferWigleEndpoint.mockReturnValueOnce('wifi');
-      mockFetchOrImportDetail.mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        skipped: true,
-        error: 'Not queried: locally-administered MAC skipped for batch lookups',
-      });
-
-      const res = await request(app)
-        .post('/api/detail/batch')
-        .send({ bssids: ['0E:FE:7B:78:FC:79'], import: true });
-
-      expect(res.status).toBe(200);
-      expect(res.body.ok).toBe(true);
-      expect(res.body.results).toEqual([
-        {
-          bssid: '0E:FE:7B:78:FC:79',
-          success: false,
-          skipped: true,
-          error: 'Not queried: locally-administered MAC skipped for batch lookups',
-        },
-      ]);
-      expect(res.body.summary).toEqual({
-        total: 1,
-        succeeded: 0,
-        skipped: 1,
-        failed: 0,
-        totalImported: 0,
       });
     });
 
