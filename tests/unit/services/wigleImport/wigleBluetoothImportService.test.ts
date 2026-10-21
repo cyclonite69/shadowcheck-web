@@ -15,6 +15,12 @@ const rateLimitingStrategy = require('../../../../server/src/services/wigleImpor
 const btApiClient = require('../../../../server/src/services/wigleImport/btApiClient');
 const adminDbService = require('../../../../server/src/services/adminDbService');
 const wigleLocks = require('../../../../server/src/services/wigleImport/wigleLocks');
+const wigleRequestLedger = require('../../../../server/src/services/wigleRequestLedger');
+
+jest.mock('../../../../server/src/services/wigleRequestLedger', () => ({
+  assertCanRequest: jest.fn(),
+  getQuotaStatus: jest.fn(),
+}));
 
 jest.mock('../../../../server/src/logging/logger', () => ({
   info: jest.fn(),
@@ -80,6 +86,7 @@ describe('wigleBluetoothImportService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (wigleRequestLedger.assertCanRequest as any).mockReset();
 
     mockClient = {
       query: (jest.fn() as any).mockResolvedValue({ rows: [] }),
@@ -104,13 +111,30 @@ describe('wigleBluetoothImportService', () => {
       await expect(startBluetoothImportRun({})).rejects.toThrow('Invalid query parameter');
     });
 
-    it('resumes an existing matching run if found', async () => {
+    it('returns an existing matching paused run without auto-resuming', async () => {
       (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
       (btParams.normalizeBtImportParams as any).mockReturnValue({ term: 'test' });
       (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fingerprint-123');
       (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce({
         id: 42,
         status: 'paused',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 42, status: 'paused' });
+
+      const result = await startBluetoothImportRun({});
+      expect(result).toEqual({ id: 42, status: 'paused' });
+      expect(wigleLocks.transitionRunToRunning).not.toHaveBeenCalled();
+      expect(wigleLocks.releaseGlobalWigleLock).toHaveBeenCalledWith(mockClient);
+      expect(mockClient.release).toHaveBeenCalled();
+    });
+
+    it('resumes an existing matching failed run if found', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (btParams.normalizeBtImportParams as any).mockReturnValue({ term: 'test' });
+      (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fingerprint-123');
+      (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce({
+        id: 42,
+        status: 'failed',
       });
       (runRepository.reconcileRunProgress as any).mockResolvedValueOnce({
         id: 42,
@@ -121,6 +145,18 @@ describe('wigleBluetoothImportService', () => {
       const result = await startBluetoothImportRun({});
       expect(result).toEqual({ id: 42, status: 'completed' });
       expect(wigleLocks.transitionRunToRunning).toHaveBeenCalledWith(mockClient, 42);
+    });
+
+    it('throws 429 if quota pre-flight is exhausted', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      const quotaErr: any = new Error('WiGLE search soft limit reached (50/50).');
+      quotaErr.status = 429;
+      (wigleRequestLedger.assertCanRequest as any).mockImplementationOnce(() => {
+        throw quotaErr;
+      });
+
+      await expect(startBluetoothImportRun({})).rejects.toThrow(/soft limit reached/);
+      expect(adminDbService.getLongRunningAdminPool).not.toHaveBeenCalled();
     });
 
     it('creates and executes a new run if no resumable run exists', async () => {
@@ -189,6 +225,22 @@ describe('wigleBluetoothImportService', () => {
       const result = await resumeBluetoothImportRun(12);
       expect(result).toEqual({ id: 12, status: 'completed' });
       expect(wigleLocks.transitionRunToRunning).toHaveBeenCalledWith(mockClient, 12);
+    });
+
+    it('throws 429 if quota pre-flight is exhausted', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({
+        id: 110,
+        status: 'paused',
+        source: 'wigle_bt',
+      });
+      const quotaErr: any = new Error('WiGLE search soft limit reached (50/50).');
+      quotaErr.status = 429;
+      (wigleRequestLedger.assertCanRequest as any).mockImplementationOnce(() => {
+        throw quotaErr;
+      });
+
+      await expect(resumeBluetoothImportRun(110)).rejects.toThrow(/soft limit reached/);
+      expect(adminDbService.getLongRunningAdminPool).not.toHaveBeenCalled();
     });
   });
 
@@ -333,6 +385,75 @@ describe('wigleBluetoothImportService', () => {
       await resumeBluetoothImportRun(17);
       expect(runRepository.persistPageFailure).toHaveBeenCalledWith(17, 1, null, 'Rate Limit');
       expect(runRepository.markRunControlStatus).toHaveBeenCalledWith(17, 'paused');
+    });
+
+    it('halts immediately without sleep or retry when local soft limit reached', async () => {
+      (runRepository.getRunOrThrow as any)
+        .mockResolvedValueOnce({ id: 33, status: 'paused' })
+        .mockResolvedValueOnce({ id: 33, status: 'running', next_page: 1, api_cursor: null });
+
+      (runRepository.reconcileRunProgress as any).mockResolvedValueOnce({
+        id: 33,
+        status: 'running',
+        next_page: 1,
+        api_cursor: null,
+      });
+      (btParams.normalizeBtImportParams as any).mockReturnValue({});
+      (authProvider.getEncodedWigleAuth as any).mockReturnValue('basic-auth');
+
+      const softLimitErr: any = new Error('WiGLE search soft limit reached (50/50).');
+      softLimitErr.status = 429;
+      (btApiClient.fetchBtPage as any).mockRejectedValueOnce(softLimitErr);
+      (runRepository.markRunControlStatus as any).mockResolvedValueOnce({
+        id: 33,
+        status: 'paused',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 33, status: 'paused' });
+
+      await resumeBluetoothImportRun(33);
+
+      expect(btApiClient.fetchBtPage).toHaveBeenCalledTimes(1);
+      expect(rateLimitingStrategy.sleep).not.toHaveBeenCalled();
+      expect(runRepository.markRunControlStatus).toHaveBeenCalledWith(33, 'paused');
+    });
+
+    it('pauses run and records timeout error on abort/timeout', async () => {
+      (runRepository.getRunOrThrow as any)
+        .mockResolvedValueOnce({ id: 34, status: 'paused' })
+        .mockResolvedValueOnce({ id: 34, status: 'running', next_page: 1, api_cursor: null });
+
+      (runRepository.reconcileRunProgress as any).mockResolvedValueOnce({
+        id: 34,
+        status: 'running',
+        next_page: 1,
+        api_cursor: null,
+      });
+      (btParams.normalizeBtImportParams as any).mockReturnValue({});
+      (authProvider.getEncodedWigleAuth as any).mockReturnValue('basic-auth');
+
+      const abortErr: any = new Error('This operation was aborted');
+      abortErr.name = 'AbortError';
+      abortErr.isTimeout = true;
+      (btApiClient.fetchBtPage as any).mockRejectedValueOnce(abortErr);
+      (runRepository.markRunControlStatus as any).mockResolvedValueOnce({
+        id: 34,
+        status: 'paused',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 34, status: 'paused' });
+
+      await resumeBluetoothImportRun(34);
+
+      expect(runRepository.persistPageFailure).toHaveBeenCalledWith(
+        34,
+        1,
+        null,
+        expect.stringMatching(/WiGLE Bluetooth search timed out after \d+ seconds \(no response\)/)
+      );
+      expect(runRepository.markRunControlStatus).toHaveBeenCalledWith(
+        34,
+        'paused',
+        expect.stringMatching(/WiGLE Bluetooth search timed out after \d+ seconds \(no response\)/)
+      );
     });
 
     it('completes the run immediately if no records are returned on the first page', async () => {
@@ -514,6 +635,40 @@ describe('wigleBluetoothImportService', () => {
       expect(wigleLocks.releaseGlobalWigleLock).toHaveBeenCalledWith(mockClient);
       expect(mockClient.release).toHaveBeenCalledTimes(1);
     });
+
+    it('returns an existing matching paused run without auto-resuming', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (btParams.normalizeBtImportParams as any).mockReturnValueOnce({ term: 'bt' });
+      (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fp-paused');
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(true);
+      (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce({
+        id: 70,
+        status: 'paused',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 70, status: 'paused' });
+
+      const result = await dispatchBluetoothImportRun({});
+      expect(result.status).toBe('dispatched');
+      if (result.status === 'dispatched') {
+        expect(result.run.id).toBe(70);
+        expect(result.run.status).toBe('paused');
+      }
+      expect(wigleLocks.transitionRunToRunning).not.toHaveBeenCalled();
+      expect(wigleLocks.releaseGlobalWigleLock).toHaveBeenCalledWith(mockClient);
+      expect(mockClient.release).toHaveBeenCalled();
+    });
+
+    it('throws 429 if quota pre-flight is exhausted', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      const quotaErr: any = new Error('WiGLE search soft limit reached (50/50).');
+      quotaErr.status = 429;
+      (wigleRequestLedger.assertCanRequest as any).mockImplementationOnce(() => {
+        throw quotaErr;
+      });
+
+      await expect(dispatchBluetoothImportRun({})).rejects.toThrow(/soft limit reached/);
+      expect(adminDbService.getLongRunningAdminPool).not.toHaveBeenCalled();
+    });
   });
 
   describe('dispatchResumeBluetoothImportRun', () => {
@@ -552,6 +707,22 @@ describe('wigleBluetoothImportService', () => {
       await expect(dispatchResumeBluetoothImportRun(54)).rejects.toThrow(
         /Cannot resume non-Bluetooth import run via Bluetooth service/
       );
+    });
+
+    it('throws 429 if quota pre-flight is exhausted', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({
+        id: 55,
+        status: 'paused',
+        source: 'wigle_bt',
+      });
+      const quotaErr: any = new Error('WiGLE search soft limit reached (50/50).');
+      quotaErr.status = 429;
+      (wigleRequestLedger.assertCanRequest as any).mockImplementationOnce(() => {
+        throw quotaErr;
+      });
+
+      await expect(dispatchResumeBluetoothImportRun(55)).rejects.toThrow(/soft limit reached/);
+      expect(adminDbService.getLongRunningAdminPool).not.toHaveBeenCalled();
     });
 
     it('returns already_running when global lock held', async () => {

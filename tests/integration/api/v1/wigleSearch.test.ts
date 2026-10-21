@@ -13,6 +13,7 @@ const mockContainer = {
     resumeLatestImportRun: jest.fn(),
     dispatchImportRun: jest.fn(),
     dispatchResumeImportRun: jest.fn(),
+    dispatchResumeUnifiedImportRun: jest.fn(),
     dispatchResumeLatestImportRun: jest.fn(),
     listImportRuns: jest.fn(),
     getImportCompletenessReport: jest.fn(),
@@ -303,7 +304,7 @@ describe('WiGLE Search API v1', () => {
 
     it('resumes a specific import run via async dispatch (202 Accepted)', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockResolvedValue({
         status: 'dispatched',
         run: {
           id: 44,
@@ -315,7 +316,9 @@ describe('WiGLE Search API v1', () => {
 
       expect(res.status).toBe(202);
       expect(res.body.status).toBe('dispatched');
-      expect(mockContainer.wigleImportRunService.dispatchResumeImportRun).toHaveBeenCalledWith(44);
+      expect(
+        mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun
+      ).toHaveBeenCalledWith(44);
     });
 
     it('resumes the latest matching import run via async dispatch (202 Accepted)', async () => {
@@ -344,7 +347,7 @@ describe('WiGLE Search API v1', () => {
 
     it('returns 200 for idempotent same-run resume when already running', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockResolvedValue({
         status: 'already_running',
         isSameRun: true,
         activeRunId: 44,
@@ -591,7 +594,7 @@ describe('WiGLE Search API v1', () => {
     });
 
     it('resumes, pauses, and cancels a run by id', async () => {
-      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockResolvedValue({
         status: 'dispatched',
         run: {
           id: 11,
@@ -612,9 +615,52 @@ describe('WiGLE Search API v1', () => {
       const cancelled = await request(app).post('/api/wigle/search-api/import-runs/11/cancel');
 
       expect(resumed.status).toBe(202);
-      expect(mockContainer.wigleImportRunService.dispatchResumeImportRun).toHaveBeenCalledWith(11);
+      expect(
+        mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun
+      ).toHaveBeenCalledWith(11);
       expect(paused.body.run.status).toBe('paused');
       expect(cancelled.body.run.status).toBe('cancelled');
+    });
+
+    it('resumes a Bluetooth import run by id via unified resume route (202 Accepted)', async () => {
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockResolvedValueOnce({
+        status: 'dispatched',
+        run: {
+          id: 420,
+          source: 'wigle_bt',
+          status: 'running',
+        },
+      });
+
+      const res = await request(app).post('/api/wigle/search-api/import-runs/420/resume');
+
+      expect(res.status).toBe(202);
+      expect(res.body.status).toBe('dispatched');
+      expect(res.body.run.id).toBe(420);
+      expect(res.body.run.source).toBe('wigle_bt');
+      expect(
+        mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun
+      ).toHaveBeenCalledWith(420);
+    });
+
+    it('maps guard and status-mismatch errors to 400 Bad Request on resume', async () => {
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockRejectedValueOnce(
+        new Error('Cannot resume Bluetooth import run via WiFi search service (run 420)')
+      );
+
+      const res = await request(app).post('/api/wigle/search-api/import-runs/420/resume');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Cannot resume Bluetooth import run');
+    });
+
+    it('maps quota soft limit error to 429 Too Many Requests on resume', async () => {
+      const err: any = new Error('WiGLE search soft limit reached (50/50).');
+      err.status = 429;
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockRejectedValueOnce(err);
+
+      const res = await request(app).post('/api/wigle/search-api/import-runs/420/resume');
+      expect(res.status).toBe(429);
+      expect(res.body.error).toContain('WiGLE search soft limit reached');
     });
 
     it.each(['resume', 'pause', 'cancel'])('rejects invalid ids for %s', async (action) => {

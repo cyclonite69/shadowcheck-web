@@ -1,6 +1,7 @@
 import logger from '../../logging/logger';
 import { buildBtSearchParams, type WigleBtImportParams } from './btParams';
 import { wigleGatewayFetch } from '../wigle/wigleGateway';
+import { getImportSearchTimeoutMs } from '../wigleSearchApiService';
 
 export interface WigleBtPageResponse {
   success?: boolean;
@@ -22,12 +23,13 @@ export const fetchBtPage = async (
   const params = buildBtSearchParams(requestParams, searchAfter);
   logger.info('[WiGLE BT Import] Fetch page request', { searchAfter: searchAfter || null });
 
+  const timeoutMs = getImportSearchTimeoutMs();
   const apiUrl = `https://api.wigle.net/api/v2/bluetooth/search?${params.toString()}`;
 
   const gatewayResult = await wigleGatewayFetch({
     kind: 'search',
     url: apiUrl,
-    timeoutMs: 30000,
+    timeoutMs,
     maxRetries: 0,
     label: 'WiGLE BT Search API',
     entrypoint: 'bt-import-run',
@@ -45,6 +47,8 @@ export const fetchBtPage = async (
   if (!gatewayResult.ok) {
     const error: any = new Error(gatewayResult.error);
     error.status = gatewayResult.status;
+    error.isTimeout = gatewayResult.isTimeout;
+    error.code = gatewayResult.code;
     throw error;
   }
 

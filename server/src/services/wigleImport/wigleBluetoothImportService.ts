@@ -33,6 +33,9 @@ import {
   transitionRunToRunning,
 } from './wigleLocks';
 import { type WigleDispatchResult, reconcileOrphanRuns } from './use-cases/manageImportRuns';
+import { assertCanRequest } from '../wigleRequestLedger';
+import { isLocalSoftLimitError } from './orchestrators/WigleImportRunOrchestrator';
+import { getImportSearchTimeoutMs } from '../wigleSearchApiService';
 
 const RESUMABLE_STATUSES = ['running', 'paused', 'failed'];
 
@@ -82,6 +85,7 @@ const executeBluetoothImportLoop = async (runId: number) => {
     let data: WigleBtPageResponse | null;
     try {
       try {
+        assertCanRequest('search', 'background');
         data = await fetchBtPage(encodedAuth, requestParams, requestCursor);
       } catch (error: any) {
         if (error?.status === 401 || error?.status === 403) {
@@ -89,6 +93,15 @@ const executeBluetoothImportLoop = async (runId: number) => {
             runId,
             pageNumber,
             status: error?.status,
+          });
+          throw error;
+        }
+
+        // Local soft limit is never transient and should not be retried with extra sleep
+        if (isLocalSoftLimitError(error)) {
+          logger.warn('[WiGLE BT Import] Local soft limit reached — pausing without retry', {
+            runId,
+            pageNumber,
           });
           throw error;
         }
@@ -103,6 +116,7 @@ const executeBluetoothImportLoop = async (runId: number) => {
           await sleep(delayMs);
 
           try {
+            assertCanRequest('search', 'background');
             data = await fetchBtPage(encodedAuth, requestParams, requestCursor);
           } catch (retryError: any) {
             if (retryError?.status === 429) {
@@ -162,9 +176,25 @@ const executeBluetoothImportLoop = async (runId: number) => {
 
       await sleep(getAdaptiveDelay());
     } catch (error: any) {
-      const errorMessage = error?.details || error?.message || 'WiGLE BT import page failed';
+      const isAbortOrTimeout = Boolean(
+        error?.isTimeout ||
+        error?.name === 'AbortError' ||
+        (typeof error?.message === 'string' && /aborted|timeout/i.test(error.message))
+      );
+      const timeoutSec = Math.round(getImportSearchTimeoutMs() / 1000);
+      const errorMessage = isAbortOrTimeout
+        ? `WiGLE Bluetooth search timed out after ${timeoutSec} seconds (no response)`
+        : error?.details || error?.message || 'WiGLE BT import page failed';
+
       await persistPageFailure(runId, pageNumber, requestCursor, errorMessage);
-      if (error?.status === 401 || error?.status === 403) {
+      if (isAbortOrTimeout) {
+        run = await markRunControlStatus(runId, 'paused', errorMessage);
+        logger.warn('[WiGLE BT Import] Request timed out — run paused for later resumption', {
+          runId,
+          pageNumber,
+          timeoutSec,
+        });
+      } else if (error?.status === 401 || error?.status === 403) {
         run = await markRunFailure(runId, errorMessage);
       } else if (error?.status === 429) {
         run = await markRunControlStatus(runId, 'paused');
@@ -193,8 +223,19 @@ async function executeBluetoothImportWithLocks(
       runId,
       error: error?.message || String(error),
     });
-    const errorMessage = error?.details || error?.message || 'WiGLE BT import run failed';
-    if (error?.status === 429) {
+    const isAbortOrTimeout = Boolean(
+      error?.isTimeout ||
+      error?.name === 'AbortError' ||
+      (typeof error?.message === 'string' && /aborted|timeout/i.test(error.message))
+    );
+    const timeoutSec = Math.round(getImportSearchTimeoutMs() / 1000);
+    const errorMessage = isAbortOrTimeout
+      ? `WiGLE Bluetooth search timed out after ${timeoutSec} seconds (no response)`
+      : error?.details || error?.message || 'WiGLE BT import run failed';
+
+    if (isAbortOrTimeout) {
+      await markRunControlStatus(runId, 'paused', errorMessage).catch(() => {});
+    } else if (error?.status === 429) {
       await markRunControlStatus(runId, 'paused').catch(() => {});
     } else {
       await markRunFailure(runId, errorMessage).catch(() => {});
@@ -233,6 +274,9 @@ export const dispatchBluetoothImportRun = async (
   if (validationError) {
     throw new Error(validationError);
   }
+
+  // Pre-flight quota check before acquiring locks or connecting to the DB pool
+  assertCanRequest('search', 'background');
 
   const pool = getLongRunningAdminPool();
   if (!pool) {
@@ -292,6 +336,21 @@ export const dispatchBluetoothImportRun = async (
         runId: run.id,
         status: run.status,
       });
+
+      // If an existing matching run was found and it is already paused, do not auto-resume it.
+      // Explicit resume (dispatchResumeBluetoothImportRun) is required to restart a paused run.
+      if (run.status === 'paused') {
+        if (globalLockAcquired) {
+          await releaseGlobalWigleLock(client).catch(() => {});
+        }
+        client.release();
+        clientReleased = true;
+        const serializedRun = await getImportRun(Number(run.id));
+        return {
+          status: 'dispatched',
+          run: serializedRun,
+        };
+      }
     } else {
       run = await createImportRun(normalized as Record<string, unknown>, {
         source: 'wigle_bt',
@@ -374,6 +433,9 @@ export const dispatchResumeBluetoothImportRun = async (
   if (existingRun.source && existingRun.source !== 'wigle_bt') {
     throw new Error('Cannot resume non-Bluetooth import run via Bluetooth service');
   }
+
+  // Pre-flight quota check before acquiring locks or connecting to the DB pool
+  assertCanRequest('search', 'background');
 
   const pool = getLongRunningAdminPool();
   if (!pool) {
@@ -465,6 +527,9 @@ export const startBluetoothImportRun = async (rawQuery: Record<string, unknown>)
     throw new Error(validationError);
   }
 
+  // Pre-flight quota check before acquiring locks or connecting to the DB pool
+  assertCanRequest('search', 'background');
+
   const normalized = normalizeBtImportParams(rawQuery);
   const fingerprint = getBtRequestFingerprint(normalized);
 
@@ -498,6 +563,16 @@ export const startBluetoothImportRun = async (rawQuery: Record<string, unknown>)
 
     if (existing) {
       runId = Number(existing.id);
+
+      // If an existing matching run was found and it is already paused, do not auto-resume it.
+      // Explicit resume (resumeBluetoothImportRun) is required to restart a paused run.
+      if (existing.status === 'paused') {
+        if (globalLockAcquired) {
+          await releaseGlobalWigleLock(client).catch(() => {});
+        }
+        client.release();
+        return getImportRun(runId);
+      }
     } else {
       const run = await createImportRun(normalized as Record<string, unknown>, {
         source: 'wigle_bt',
@@ -554,6 +629,9 @@ export const resumeBluetoothImportRun = async (runId: number) => {
   if (existingRun.source && existingRun.source !== 'wigle_bt') {
     throw new Error('Cannot resume non-Bluetooth import run via Bluetooth service');
   }
+
+  // Pre-flight quota check before acquiring locks or connecting to the DB pool
+  assertCanRequest('search', 'background');
 
   const pool = getLongRunningAdminPool();
   if (!pool) {

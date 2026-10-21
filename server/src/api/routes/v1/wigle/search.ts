@@ -84,7 +84,10 @@ router.post(
       const resumeLatest = query.resumeLatest === true || query.resumeLatest === 'true';
 
       const dispatch = runId
-        ? await wigleImportRunService.dispatchResumeImportRun(runId)
+        ? await (
+            wigleImportRunService.dispatchResumeUnifiedImportRun ||
+            wigleImportRunService.dispatchResumeImportRun
+          )(runId)
         : resumeLatest
           ? await wigleImportRunService.dispatchResumeLatestImportRun(query)
           : await wigleImportRunService.dispatchImportRun(query);
@@ -119,10 +122,23 @@ router.post(
         return res.status(404).json({ ok: false, error: err.message });
       }
       if (
+        err?.status === 400 ||
         err?.message?.includes('already completed') ||
-        err?.message?.includes('cancelled WiGLE import run')
+        err?.message?.includes('cancelled WiGLE') ||
+        err?.message?.includes('not in a resumable state') ||
+        err?.message?.includes('not in a runnable state') ||
+        err?.message?.includes('Cannot resume Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-Bluetooth import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.status === 429 ||
+        err?.message?.includes('soft limit reached') ||
+        err?.message?.includes('quota reached') ||
+        err?.code === 'QUOTA_EXCEEDED'
+      ) {
+        return res.status(429).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -299,10 +315,23 @@ router.post(
         return res.status(404).json({ ok: false, error: err.message });
       }
       if (
+        err?.status === 400 ||
         err?.message?.includes('already completed') ||
-        err?.message?.includes('cancelled WiGLE import run')
+        err?.message?.includes('cancelled WiGLE') ||
+        err?.message?.includes('not in a resumable state') ||
+        err?.message?.includes('not in a runnable state') ||
+        err?.message?.includes('Cannot resume Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-Bluetooth import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.status === 429 ||
+        err?.message?.includes('soft limit reached') ||
+        err?.message?.includes('quota reached') ||
+        err?.code === 'QUOTA_EXCEEDED'
+      ) {
+        return res.status(429).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -337,7 +366,10 @@ router.post(
       if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
       }
-      const dispatch = await wigleImportRunService.dispatchResumeImportRun(runId);
+      const dispatch = await (
+        wigleImportRunService.dispatchResumeUnifiedImportRun ||
+        wigleImportRunService.dispatchResumeImportRun
+      )(runId);
       if (dispatch.status === 'already_running') {
         if (dispatch.isSameRun && dispatch.run) {
           return res.status(200).json({
@@ -367,10 +399,23 @@ router.post(
         return res.status(404).json({ ok: false, error: err.message });
       }
       if (
+        err?.status === 400 ||
         err?.message?.includes('already completed') ||
-        err?.message?.includes('cancelled WiGLE import run')
+        err?.message?.includes('cancelled WiGLE') ||
+        err?.message?.includes('not in a resumable state') ||
+        err?.message?.includes('not in a runnable state') ||
+        err?.message?.includes('Cannot resume Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-Bluetooth import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.status === 429 ||
+        err?.message?.includes('soft limit reached') ||
+        err?.message?.includes('quota reached') ||
+        err?.code === 'QUOTA_EXCEEDED'
+      ) {
+        return res.status(429).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -568,10 +613,23 @@ router.post(
         return res.status(404).json({ ok: false, error: err.message });
       }
       if (
+        err?.status === 400 ||
         err?.message?.includes('already completed') ||
-        err?.message?.includes('cancelled WiGLE BT import run')
+        err?.message?.includes('cancelled WiGLE') ||
+        err?.message?.includes('not in a resumable state') ||
+        err?.message?.includes('not in a runnable state') ||
+        err?.message?.includes('Cannot resume Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-Bluetooth import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.status === 429 ||
+        err?.message?.includes('soft limit reached') ||
+        err?.message?.includes('quota reached') ||
+        err?.code === 'QUOTA_EXCEEDED'
+      ) {
+        return res.status(429).json({ ok: false, error: err.message });
       }
       next(err);
     }
