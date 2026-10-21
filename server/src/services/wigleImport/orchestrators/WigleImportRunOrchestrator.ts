@@ -12,6 +12,7 @@ import { processSuccessfulPage } from '../pageProcessor';
 import { getEncodedWigleAuth } from '../authProvider';
 import { getAdaptiveDelay, sleep } from '../rateLimitingStrategy';
 import { fetchWiglePage, type WiglePageResponse } from '../wigleApiClient';
+import { assertWifiSearchSource } from '../sourceGuards';
 
 /**
  * Backoff duration for transient network/timeout retries.
@@ -77,6 +78,8 @@ export class WigleImportRunOrchestrator {
     if (run.status === 'completed' || run.status === 'cancelled') {
       return run;
     }
+
+    assertWifiSearchSource(run, 'orchestrator');
 
     const requestParams = normalizeImportParams(run.request_params || {});
 

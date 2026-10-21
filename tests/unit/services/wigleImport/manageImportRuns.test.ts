@@ -257,16 +257,78 @@ describe('manageImportRuns - Asynchronous Dispatch and Orphan Reconciliation', (
 
     it('throws if attempting to resume a Bluetooth run via WiFi dispatch', async () => {
       getRunOrThrow.mockResolvedValueOnce({ id: 12, status: 'paused', source: 'wigle_bt' });
-      await expect(dispatchResumeImportRun(12)).rejects.toThrow(
-        /Cannot resume Bluetooth import run via WiFi/
-      );
+      await expect(dispatchResumeImportRun(12)).rejects.toThrow(/Cannot resume.*Bluetooth/);
     });
 
+    it('rejects if run.source is v3_manual without acquiring locks or transitioning status', async () => {
+      getRunOrThrow.mockResolvedValueOnce({ id: 13, status: 'paused', source: 'v3_manual' });
+      await expect(dispatchResumeImportRun(13)).rejects.toThrow(
+        /Cannot resume non-WiFi search import run #13 \(source: 'v3_manual'\)/
+      );
+      expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+      expect(acquireRunWigleLock).not.toHaveBeenCalled();
+      expect(transitionRunToRunning).not.toHaveBeenCalled();
+      expect(mockOrchestratorExecute).not.toHaveBeenCalled();
+    });
+
+    it.each(['v3_batch', 'v3_auto', 'cellular', 'unknown_source'])(
+      'rejects non-allowlisted source %s without acquiring locks or transitioning status',
+      async (nonAllowedSource) => {
+        getRunOrThrow.mockResolvedValueOnce({ id: 14, status: 'paused', source: nonAllowedSource });
+        await expect(dispatchResumeImportRun(14)).rejects.toThrow(
+          new RegExp(
+            `Cannot resume non-WiFi search import run #14 \\(source: '${nonAllowedSource}'\\)`
+          )
+        );
+        expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+        expect(acquireRunWigleLock).not.toHaveBeenCalled();
+        expect(transitionRunToRunning).not.toHaveBeenCalled();
+        expect(mockOrchestratorExecute).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([undefined, null, ''])(
+      'rejects invalid/missing source %p without acquiring locks or transitioning status',
+      async (invalidSource) => {
+        getRunOrThrow.mockResolvedValueOnce({ id: 15, status: 'paused', source: invalidSource });
+        await expect(dispatchResumeImportRun(15)).rejects.toThrow(
+          /Cannot resume non-WiFi search import run #15 \(source: 'unknown'\)/
+        );
+        expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+        expect(acquireRunWigleLock).not.toHaveBeenCalled();
+        expect(transitionRunToRunning).not.toHaveBeenCalled();
+        expect(mockOrchestratorExecute).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(['wigle', 'wigle_v2'])(
+      'dispatches resumption for allowlisted WiFi source %s',
+      async (allowedSource) => {
+        getRunOrThrow.mockResolvedValueOnce({ id: 25, status: 'paused', source: allowedSource });
+        acquireGlobalWigleLock.mockResolvedValueOnce(true);
+        acquireRunWigleLock.mockResolvedValueOnce(true);
+        transitionRunToRunning.mockResolvedValueOnce({
+          id: 25,
+          status: 'running',
+          source: allowedSource,
+        });
+        getImportRun.mockResolvedValueOnce({ id: 25, status: 'running', source: allowedSource });
+        mockOrchestratorExecute.mockResolvedValueOnce({
+          id: 25,
+          status: 'completed',
+          source: allowedSource,
+        });
+
+        const result = await dispatchResumeImportRun(25);
+        expect(result.status).toBe('dispatched');
+      }
+    );
+
     it('returns already_running with isSameRun: true if this runId is already executing', async () => {
-      getRunOrThrow.mockResolvedValueOnce({ id: 20, status: 'running' });
+      getRunOrThrow.mockResolvedValueOnce({ id: 20, status: 'running', source: 'wigle_v2' });
       acquireGlobalWigleLock.mockResolvedValueOnce(false);
       findActiveWigleRunId.mockResolvedValueOnce(20);
-      getImportRun.mockResolvedValueOnce({ id: 20, status: 'running' });
+      getImportRun.mockResolvedValueOnce({ id: 20, status: 'running', source: 'wigle_v2' });
 
       const result = await dispatchResumeImportRun(20);
 
@@ -279,12 +341,20 @@ describe('manageImportRuns - Asynchronous Dispatch and Orphan Reconciliation', (
     });
 
     it('dispatches resumption when locks acquired', async () => {
-      getRunOrThrow.mockResolvedValueOnce({ id: 25, status: 'paused' });
+      getRunOrThrow.mockResolvedValueOnce({ id: 25, status: 'paused', source: 'wigle_v2' });
       acquireGlobalWigleLock.mockResolvedValueOnce(true);
       acquireRunWigleLock.mockResolvedValueOnce(true);
-      transitionRunToRunning.mockResolvedValueOnce({ id: 25, status: 'running' });
-      getImportRun.mockResolvedValueOnce({ id: 25, status: 'running' });
-      mockOrchestratorExecute.mockResolvedValueOnce({ id: 25, status: 'completed' });
+      transitionRunToRunning.mockResolvedValueOnce({
+        id: 25,
+        status: 'running',
+        source: 'wigle_v2',
+      });
+      getImportRun.mockResolvedValueOnce({ id: 25, status: 'running', source: 'wigle_v2' });
+      mockOrchestratorExecute.mockResolvedValueOnce({
+        id: 25,
+        status: 'completed',
+        source: 'wigle_v2',
+      });
 
       const result = await dispatchResumeImportRun(25);
 
@@ -298,7 +368,7 @@ describe('manageImportRuns - Asynchronous Dispatch and Orphan Reconciliation', (
   describe('dispatchResumeLatestImportRun', () => {
     it('calls dispatchResumeImportRun if latest resumable run is found', async () => {
       findLatestResumable.mockResolvedValueOnce({ id: 88 });
-      getRunOrThrow.mockResolvedValueOnce({ id: 88, status: 'paused' });
+      getRunOrThrow.mockResolvedValueOnce({ id: 88, status: 'paused', source: 'wigle_v2' });
       acquireGlobalWigleLock.mockResolvedValueOnce(true);
       acquireRunWigleLock.mockResolvedValueOnce(true);
       transitionRunToRunning.mockResolvedValueOnce({ id: 88, status: 'running' });
@@ -336,6 +406,15 @@ describe('manageImportRuns - Asynchronous Dispatch and Orphan Reconciliation', (
         'Cannot resume an import run that is already completed'
       );
     });
+
+    it('rejects in dispatchResumeLatestImportRun if latest resumable run has a non-WiFi source like v3_manual', async () => {
+      findLatestResumable.mockResolvedValueOnce({ id: 95 });
+      getRunOrThrow.mockResolvedValueOnce({ id: 95, status: 'paused', source: 'v3_manual' });
+
+      await expect(dispatchResumeLatestImportRun({ ssid: 'V3Net' })).rejects.toThrow(
+        /Cannot resume non-WiFi search import run #95/
+      );
+    });
   });
 
   describe('startImportRun fail-closed locking', () => {
@@ -355,6 +434,39 @@ describe('manageImportRuns - Asynchronous Dispatch and Orphan Reconciliation', (
         /Long-running admin database pool not initialized/
       );
     });
+
+    it('rejects resume on v3_manual without acquiring locks or transitioning status', async () => {
+      getRunOrThrow.mockResolvedValueOnce({ id: 96, status: 'paused', source: 'v3_manual' });
+      await expect(resumeImportRun(96)).rejects.toThrow(
+        /Cannot resume non-WiFi search import run #96 \(source: 'v3_manual'\)/
+      );
+      expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+      expect(acquireRunWigleLock).not.toHaveBeenCalled();
+      expect(mockClient.query).not.toHaveBeenCalled();
+    });
+
+    it('rejects resume on Bluetooth run without acquiring locks or transitioning status', async () => {
+      getRunOrThrow.mockResolvedValueOnce({ id: 97, status: 'paused', source: 'wigle_bt' });
+      await expect(resumeImportRun(97)).rejects.toThrow(
+        /Cannot resume Bluetooth import run via WiFi search service/
+      );
+      expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+      expect(acquireRunWigleLock).not.toHaveBeenCalled();
+      expect(mockClient.query).not.toHaveBeenCalled();
+    });
+
+    it.each([undefined, null, ''])(
+      'rejects invalid/missing source %p without acquiring locks or transitioning status in resumeImportRun',
+      async (invalidSource) => {
+        getRunOrThrow.mockResolvedValueOnce({ id: 98, status: 'paused', source: invalidSource });
+        await expect(resumeImportRun(98)).rejects.toThrow(
+          /Cannot resume non-WiFi search import run #98 \(source: 'unknown'\)/
+        );
+        expect(acquireGlobalWigleLock).not.toHaveBeenCalled();
+        expect(acquireRunWigleLock).not.toHaveBeenCalled();
+        expect(mockClient.query).not.toHaveBeenCalled();
+      }
+    );
   });
 
   describe('reconcileOrphanRuns', () => {

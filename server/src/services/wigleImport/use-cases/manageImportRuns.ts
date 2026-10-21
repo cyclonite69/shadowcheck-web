@@ -26,6 +26,7 @@ import {
   releaseRunWigleLock,
   transitionRunToRunning,
 } from '../wigleLocks';
+import { assertWifiSearchSource } from '../sourceGuards';
 
 const orchestrator = new WigleImportRunOrchestrator();
 
@@ -216,10 +217,8 @@ export async function dispatchResumeImportRun(runId: number): Promise<WigleDispa
   if (existingRun.status === 'cancelled') {
     throw new Error('Cannot resume a cancelled WiGLE import run');
   }
-  // Cross-source guard: WiFi import runner must not resume Bluetooth imports
-  if (existingRun.source && existingRun.source === 'wigle_bt') {
-    throw new Error('Cannot resume Bluetooth import run via WiFi search service');
-  }
+  // Cross-source allowlist guard: only v2 Wi-Fi search sources can be resumed via WiFi search service
+  assertWifiSearchSource(existingRun, 'service');
 
   const pool = getLongRunningAdminPool();
   if (!pool) {
@@ -488,10 +487,8 @@ export const resumeImportRun = async (runId: number) => {
   if (existingRun.status === 'cancelled') {
     throw new Error('Cannot resume a cancelled WiGLE import run');
   }
-  // Cross-source guard: WiFi import runner must not resume Bluetooth imports
-  if (existingRun.source && existingRun.source === 'wigle_bt') {
-    throw new Error('Cannot resume Bluetooth import run via WiFi search service');
-  }
+  // Cross-source allowlist guard: only v2 Wi-Fi search sources can be resumed via WiFi search service
+  assertWifiSearchSource(existingRun, 'service');
 
   const pool = getLongRunningAdminPool();
   if (!pool) {

@@ -1,6 +1,7 @@
 const { query } = require('../../../config/database');
 
 import { getRequestFingerprint, normalizeImportParams } from '../params';
+import { ALLOWED_WIFI_SEARCH_SOURCES } from '../sourceGuards';
 
 const getRunRow = async (runId: number) => {
   const result = await query('SELECT * FROM app.wigle_import_runs WHERE id = $1', [runId]);
@@ -29,9 +30,10 @@ const findLatestResumableRun = async (
        FROM app.wigle_import_runs
       WHERE request_fingerprint = $1
         AND status = ANY($2::text[])
+        AND source = ANY($3::text[])
       ORDER BY started_at DESC
       LIMIT 1`,
-    [getRequestFingerprint(normalized), resumableStatuses]
+    [getRequestFingerprint(normalized), resumableStatuses, [...ALLOWED_WIFI_SEARCH_SOURCES]]
   );
   return result.rows[0] || null;
 };

@@ -544,6 +544,7 @@ describe('wigleImportRunService - Extended', () => {
       for (let i = 0; i < 3; i++) {
         dbState.runs.push({
           id: dbState.nextRunId++,
+          source: 'wigle_v2',
           request_fingerprint: fingerprint,
           status: 'cancelled',
           request_params: normalized,
@@ -565,6 +566,7 @@ describe('wigleImportRunService - Extended', () => {
 
       dbState.runs.push({
         id: 10,
+        source: 'wigle_v2',
         request_fingerprint: fingerprint,
         status: 'paused',
         request_params: normalized,
@@ -585,6 +587,7 @@ describe('wigleImportRunService - Extended', () => {
     it('returns completed run immediately in resumeImportRun', async () => {
       dbState.runs.push({
         id: 20,
+        source: 'wigle_v2',
         status: 'completed',
         request_params: { ssid: 'test', country: 'US' },
       } as any);
@@ -663,6 +666,7 @@ describe('wigleImportRunService - Extended', () => {
     it('throws error when resuming a cancelled run', async () => {
       dbState.runs.push({
         id: 30,
+        source: 'wigle_v2',
         status: 'cancelled',
         request_params: { ssid: 'test', country: 'US' },
       } as any);
@@ -756,6 +760,7 @@ describe('wigleImportRunService - Extended', () => {
     it('generates completeness report', async () => {
       dbState.runs.push({
         id: 1,
+        source: 'wigle_v2',
         status: 'running',
         request_params: { ssid: 'test', country: 'US' },
         started_at: nowIso(),
@@ -770,9 +775,9 @@ describe('wigleImportRunService - Extended', () => {
     });
 
     it('handles bulk delete of cancelled cluster', async () => {
-      dbState.runs.push({ id: 100, status: 'cancelled', state: null } as any);
-      dbState.runs.push({ id: 101, status: 'cancelled', state: null } as any);
-      dbState.runs.push({ id: 102, status: 'running', state: null } as any);
+      dbState.runs.push({ id: 100, source: 'wigle_v2', status: 'cancelled', state: null } as any);
+      dbState.runs.push({ id: 101, source: 'wigle_v2', status: 'cancelled', state: null } as any);
+      dbState.runs.push({ id: 102, source: 'wigle_v2', status: 'running', state: null } as any);
 
       const service = getService();
       const deletedCount = await service.bulkDeleteGlobalCancelledCluster();
@@ -795,6 +800,7 @@ describe('wigleImportRunService - Extended', () => {
       const fingerprint = getRequestFingerprint(normalized);
       dbState.runs.push({
         id: 5,
+        source: 'wigle_v2',
         status: 'paused',
         request_fingerprint: fingerprint,
         request_params: normalized,
@@ -810,6 +816,7 @@ describe('wigleImportRunService - Extended', () => {
       const fingerprint = getRequestFingerprint(normalized);
       dbState.runs.push({
         id: 5,
+        source: 'wigle_v2',
         status: 'paused',
         request_fingerprint: fingerprint,
         request_params: normalized,

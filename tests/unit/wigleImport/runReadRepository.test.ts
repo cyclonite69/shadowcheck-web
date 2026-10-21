@@ -11,19 +11,20 @@ describe('runReadRepository', () => {
     jest.clearAllMocks();
   });
 
-  it('findLatestResumableRun queries by normalized fingerprint and statuses', async () => {
-    query.mockResolvedValueOnce({ rows: [{ id: 42, status: 'paused' }] });
+  it('findLatestResumableRun queries by normalized fingerprint, statuses, and allowlisted WiFi sources', async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: 42, status: 'paused', source: 'wigle_v2' }] });
 
     const result = await runReadRepository.findLatestResumableRun({ ssid: 'test', country: 'US' }, [
       'paused',
       'failed',
     ]);
 
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE request_fingerprint = $1'), [
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('AND source = ANY($3::text[])'), [
       expect.any(String),
       ['paused', 'failed'],
+      ['wigle', 'wigle_v2'],
     ]);
-    expect(result).toEqual({ id: 42, status: 'paused' });
+    expect(result).toEqual({ id: 42, status: 'paused', source: 'wigle_v2' });
   });
 
   it('getRunPages returns ordered page rows', async () => {

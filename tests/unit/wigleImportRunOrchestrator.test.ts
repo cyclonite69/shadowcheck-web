@@ -68,14 +68,14 @@ describe('WigleImportRunOrchestrator', () => {
   });
 
   it('returns a completed run without fetching new pages', async () => {
-    mockReconcileRunProgress.mockResolvedValue({ id: 1, status: 'completed' });
+    mockReconcileRunProgress.mockResolvedValue({ id: 1, status: 'completed', source: 'wigle_v2' });
 
     const Orchestrator = getOrchestrator();
     const orchestrator = new Orchestrator();
 
     const result = await orchestrator.execute(1);
 
-    expect(result).toEqual({ id: 1, status: 'completed' });
+    expect(result).toEqual({ id: 1, status: 'completed', source: 'wigle_v2' });
     expect(mockFetchWiglePage).not.toHaveBeenCalled();
   });
 
@@ -83,11 +83,13 @@ describe('WigleImportRunOrchestrator', () => {
     mockReconcileRunProgress.mockResolvedValue({
       id: 2,
       status: 'running',
+      source: 'wigle_v2',
       request_params: { ssid: 'empty-test', resultsPerPage: 100 },
     });
     mockGetRunOrThrow.mockResolvedValue({
       id: 2,
       status: 'running',
+      source: 'wigle_v2',
       next_page: 1,
       api_cursor: null,
       state: 'US',
@@ -99,7 +101,7 @@ describe('WigleImportRunOrchestrator', () => {
       search_after: null,
       totalResults: 0,
     });
-    mockCompleteRun.mockResolvedValue({ id: 2, status: 'completed' });
+    mockCompleteRun.mockResolvedValue({ id: 2, status: 'completed', source: 'wigle_v2' });
 
     const Orchestrator = getOrchestrator();
     const orchestrator = new Orchestrator();
@@ -110,7 +112,7 @@ describe('WigleImportRunOrchestrator', () => {
       2,
       'No records returned on first page — API quota may be exhausted or no results match the search'
     );
-    expect(result).toEqual({ id: 2, status: 'completed' });
+    expect(result).toEqual({ id: 2, status: 'completed', source: 'wigle_v2' });
     expect(mockPersistPageFailure).not.toHaveBeenCalled();
   });
 
@@ -118,11 +120,13 @@ describe('WigleImportRunOrchestrator', () => {
     mockReconcileRunProgress.mockResolvedValue({
       id: 3,
       status: 'running',
+      source: 'wigle_v2',
       request_params: { ssid: 'rate-limit-test', resultsPerPage: 100 },
     });
     mockGetRunOrThrow.mockResolvedValue({
       id: 3,
       status: 'running',
+      source: 'wigle_v2',
       next_page: 1,
       api_cursor: null,
       state: 'US',
@@ -158,11 +162,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'MI', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 1,
         api_cursor: null,
         state: 'MI',
@@ -216,11 +222,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'MI', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 56,
         api_cursor: 'cursor_55',
         state: 'MI',
@@ -275,11 +283,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 1,
         api_cursor: null,
         state: null,
@@ -326,11 +336,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'AZ', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 12,
         api_cursor: 'cursor_11',
         state: 'AZ',
@@ -366,11 +378,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: 'bad-auth', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 1,
         api_cursor: null,
         state: 'AK',
@@ -402,6 +416,7 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'MI', resultsPerPage: 100 },
       });
 
@@ -410,6 +425,7 @@ describe('WigleImportRunOrchestrator', () => {
         .mockResolvedValueOnce({
           id: runId,
           status: 'running',
+          source: 'wigle_v2',
           next_page: 10,
           api_cursor: 'cursor_9',
           state: 'MI',
@@ -419,6 +435,7 @@ describe('WigleImportRunOrchestrator', () => {
         .mockResolvedValueOnce({
           id: runId,
           status: 'cancelled',
+          source: 'wigle_v2',
           next_page: 10,
           api_cursor: 'cursor_9',
           state: 'MI',
@@ -450,11 +467,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'MI', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 50,
         api_cursor: 'cursor_49',
         state: 'MI',
@@ -497,11 +516,13 @@ describe('WigleImportRunOrchestrator', () => {
       mockReconcileRunProgress.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         request_params: { ssidlike: '%fbi%', region: 'MI', resultsPerPage: 100 },
       });
       mockGetRunOrThrow.mockResolvedValue({
         id: runId,
         status: 'running',
+        source: 'wigle_v2',
         next_page: 5,
         api_cursor: 'cursor_4',
         state: 'MI',
@@ -540,6 +561,51 @@ describe('WigleImportRunOrchestrator', () => {
           last_error: 'timeout after 60000ms',
         })
       );
+    });
+  });
+
+  describe('Source validation & fail-closed execution', () => {
+    it.each([undefined, null, ''])(
+      'rejects invalid/missing source %p without fetching or modifying status',
+      async (invalidSource) => {
+        const runId = 991;
+        mockReconcileRunProgress.mockResolvedValue({
+          id: runId,
+          status: 'running',
+          source: invalidSource,
+          request_params: { ssid: 'test-ssid' },
+        });
+
+        const Orchestrator = getOrchestrator();
+        const orchestrator = new Orchestrator();
+
+        await expect(orchestrator.execute(runId)).rejects.toThrow(
+          `Cannot execute non-WiFi search import run #${runId} (source: 'unknown') via WiFi search orchestrator`
+        );
+        expect(mockFetchWiglePage).not.toHaveBeenCalled();
+        expect(mockMarkRunControlStatus).not.toHaveBeenCalled();
+        expect(mockMarkRunFailure).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects source v3_manual: throws, fetch never called, no status write', async () => {
+      const runId = 992;
+      mockReconcileRunProgress.mockResolvedValue({
+        id: runId,
+        status: 'running',
+        source: 'v3_manual',
+        request_params: { ssid: 'targeted-test' },
+      });
+
+      const Orchestrator = getOrchestrator();
+      const orchestrator = new Orchestrator();
+
+      await expect(orchestrator.execute(runId)).rejects.toThrow(
+        `Cannot execute non-WiFi search import run #${runId} (source: 'v3_manual') via WiFi search orchestrator`
+      );
+      expect(mockFetchWiglePage).not.toHaveBeenCalled();
+      expect(mockMarkRunControlStatus).not.toHaveBeenCalled();
+      expect(mockMarkRunFailure).not.toHaveBeenCalled();
     });
   });
 });

@@ -653,6 +653,21 @@ describe('WiGLE Search API v1', () => {
       expect(res.body.error).toContain('Cannot resume Bluetooth import run');
     });
 
+    it('maps non-WiFi source rejection from unified resume dispatcher to 400 Bad Request', async () => {
+      const err: any = new Error(
+        "Cannot resume non-WiFi search import run #427 (source: 'v3_manual') via WiFi search service"
+      );
+      err.status = 400;
+      mockContainer.wigleImportRunService.dispatchResumeUnifiedImportRun.mockRejectedValueOnce(err);
+
+      const res = await request(app).post('/api/wigle/search-api/import-runs/427/resume');
+      expect(res.status).toBe(400);
+      expect(res.body.ok).toBe(false);
+      expect(res.body.error).toContain(
+        "Cannot resume non-WiFi search import run #427 (source: 'v3_manual')"
+      );
+    });
+
     it('maps quota soft limit error to 429 Too Many Requests on resume', async () => {
       const err: any = new Error('WiGLE search soft limit reached (50/50).');
       err.status = 429;

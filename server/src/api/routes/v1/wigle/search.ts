@@ -128,7 +128,8 @@ router.post(
         err?.message?.includes('not in a resumable state') ||
         err?.message?.includes('not in a runnable state') ||
         err?.message?.includes('Cannot resume Bluetooth import run') ||
-        err?.message?.includes('Cannot resume non-Bluetooth import run')
+        err?.message?.includes('Cannot resume non-Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-WiFi search import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
       }
@@ -321,7 +322,8 @@ router.post(
         err?.message?.includes('not in a resumable state') ||
         err?.message?.includes('not in a runnable state') ||
         err?.message?.includes('Cannot resume Bluetooth import run') ||
-        err?.message?.includes('Cannot resume non-Bluetooth import run')
+        err?.message?.includes('Cannot resume non-Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-WiFi search import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
       }
@@ -405,7 +407,8 @@ router.post(
         err?.message?.includes('not in a resumable state') ||
         err?.message?.includes('not in a runnable state') ||
         err?.message?.includes('Cannot resume Bluetooth import run') ||
-        err?.message?.includes('Cannot resume non-Bluetooth import run')
+        err?.message?.includes('Cannot resume non-Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-WiFi search import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
       }
@@ -619,7 +622,8 @@ router.post(
         err?.message?.includes('not in a resumable state') ||
         err?.message?.includes('not in a runnable state') ||
         err?.message?.includes('Cannot resume Bluetooth import run') ||
-        err?.message?.includes('Cannot resume non-Bluetooth import run')
+        err?.message?.includes('Cannot resume non-Bluetooth import run') ||
+        err?.message?.includes('Cannot resume non-WiFi search import run')
       ) {
         return res.status(400).json({ ok: false, error: err.message });
       }
