@@ -263,8 +263,12 @@ export const wigleApi = {
   },
 
   // WiGLE Detail
-  async getWigleObservations(netid: string): Promise<any> {
-    return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
+  async getWigleObservations(
+    netid: string,
+    params?: { limit?: number; offset?: number }
+  ): Promise<any> {
+    const q = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}${q}`);
   },
 
   async getWiglePageNetwork(netid: string): Promise<WiglePageNetworkResponse> {

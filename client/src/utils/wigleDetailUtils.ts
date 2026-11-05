@@ -128,3 +128,172 @@ export function bestObservedSsid(
   }
   return null;
 }
+
+/**
+ * Safely extracts a readable error message from a WiGLE API response or error object.
+ * Prevents [object Object] by properly inspecting string errors, structured error objects,
+ * nested error bodies, and fallback messages.
+ */
+export function extractDetailErrorMessage(
+  response: unknown,
+  fallback = 'Failed to fetch WiGLE detail'
+): string {
+  if (!response) {
+    return fallback;
+  }
+
+  if (typeof response === 'string') {
+    const trimmed = response.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
+
+  if (typeof response !== 'object') {
+    return String(response);
+  }
+
+  const res = response as Record<string, any>;
+
+  // Check top-level message if response is an Error instance
+  if (
+    response instanceof Error &&
+    response.message &&
+    !response.message.startsWith('[object Object]')
+  ) {
+    return response.message;
+  }
+
+  // Check details field (often a plain string explanation)
+  if (typeof res.details === 'string' && res.details.trim().length > 0) {
+    return res.details.trim();
+  }
+
+  // Check error property
+  if (res.error) {
+    if (typeof res.error === 'string' && res.error.trim().length > 0) {
+      return res.error.trim();
+    }
+    if (typeof res.error === 'object' && res.error !== null) {
+      const errObj = res.error;
+      if (typeof errObj.message === 'string' && errObj.message.trim().length > 0) {
+        return errObj.message.trim();
+      }
+      if (typeof errObj.error === 'string' && errObj.error.trim().length > 0) {
+        return errObj.error.trim();
+      }
+      if (typeof errObj.code === 'string' && errObj.code.trim().length > 0) {
+        return errObj.code.trim();
+      }
+      try {
+        const str = JSON.stringify(errObj);
+        if (str && str !== '{}') {
+          return str;
+        }
+      } catch {
+        // ignore circular json
+      }
+    }
+  }
+
+  // Check top-level message
+  if (typeof res.message === 'string' && res.message.trim().length > 0) {
+    return res.message.trim();
+  }
+
+  // Check top-level code or status
+  if (typeof res.code === 'string' && res.code.trim().length > 0) {
+    return res.code.trim();
+  }
+
+  return fallback;
+}
+
+/**
+ * Validates whether an identifier string is a valid Wi-Fi/Bluetooth MAC or cellular ID.
+ * Accepts:
+ * - Colon-separated MAC: 00:11:22:33:44:55
+ * - Hyphen-separated MAC: 00-11-22-33-44-55
+ * - Raw 12-char hex: 001122334455
+ * - Cellular network/cell identifier: 3 to 64 alphanumeric, colon, hyphen, or underscore characters.
+ */
+const MAC_COLON_PATTERN = /^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
+const MAC_HYPHEN_PATTERN = /^(?:[0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$/;
+const MAC_HEX12_PATTERN = /^[0-9A-Fa-f]{12}$/;
+const CELLULAR_PATTERN = /^[0-9A-Za-z_:-]{3,64}$/;
+
+export function isValidNetid(value: unknown): boolean {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const trimmed = value.trim();
+  // Reject any value containing path separators, spaces, or query/tag characters
+  if (/[\s/?#\\<>]/.test(trimmed)) {
+    return false;
+  }
+  if (
+    MAC_COLON_PATTERN.test(trimmed) ||
+    MAC_HYPHEN_PATTERN.test(trimmed) ||
+    MAC_HEX12_PATTERN.test(trimmed)
+  ) {
+    return true;
+  }
+  // If the string contains colons and only hex chars, it is an incomplete or malformed MAC address
+  if (trimmed.includes(':') && /^[0-9A-Fa-f:]+$/.test(trimmed)) {
+    return false;
+  }
+  // If the string looks like hyphen-delimited hex octets but is not 6 octets
+  if (/^[0-9A-Fa-f]{2}(?:-[0-9A-Fa-f]{2})+$/.test(trimmed)) {
+    return false;
+  }
+  return CELLULAR_PATTERN.test(trimmed);
+}
+
+/**
+ * Safely extracts and validates a netid / BSSID from a ledger row.
+ * Handles Wi-Fi, Bluetooth/BLE, and cellular detail URL patterns and query parameters.
+ * Catches malformed percent-encoding exceptions without crashing React render.
+ * Returns null if no valid identifier can be extracted.
+ */
+export function extractNetidFromLedgerRow(
+  row:
+    | {
+        queryUrl?: string | null;
+        queryParams?: Record<string, any> | null;
+      }
+    | null
+    | undefined
+): string | null {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+
+  // 1. Check queryParams netid or bssid
+  if (row.queryParams && typeof row.queryParams === 'object') {
+    const qNetid = typeof row.queryParams.netid === 'string' ? row.queryParams.netid.trim() : '';
+    if (isValidNetid(qNetid)) {
+      return qNetid;
+    }
+    const qBssid = typeof row.queryParams.bssid === 'string' ? row.queryParams.bssid.trim() : '';
+    if (isValidNetid(qBssid)) {
+      return qBssid;
+    }
+  }
+
+  // 2. Check queryUrl for /detail/{type}/{netid}
+  if (typeof row.queryUrl === 'string') {
+    const match = row.queryUrl.match(/\/detail\/(?:wifi|bt|cell)\/([^/?#]+)/i);
+    if (match && match[1]) {
+      let decoded: string;
+      try {
+        decoded = decodeURIComponent(match[1]).trim();
+      } catch {
+        // Malformed percent-encoding sequence (e.g. %E0%A4%A or truncated %)
+        return null;
+      }
+      if (isValidNetid(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+}

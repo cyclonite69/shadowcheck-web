@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { wigleApi } from '../../../api/wigleApi';
+import { extractDetailErrorMessage } from '../../../utils/wigleDetailUtils';
 
 export interface WigleDetailData {
   networkId: string;
@@ -97,7 +98,7 @@ export const useWigleDetail = () => {
       const json = await wigleApi.getWigleDetail(normalized, isBluetooth, shouldImport);
 
       if (!json.ok) {
-        throw new Error(json.details || json.error || 'Failed to fetch WiGLE detail');
+        throw new Error(extractDetailErrorMessage(json));
       }
 
       setData(json.data);
@@ -109,7 +110,7 @@ export const useWigleDetail = () => {
         await fetchObservations(normalized);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(extractDetailErrorMessage(err));
     } finally {
       setLoading(false);
     }

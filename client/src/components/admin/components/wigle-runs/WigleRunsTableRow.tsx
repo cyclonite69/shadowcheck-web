@@ -95,12 +95,30 @@ export const WigleRunsTableRow: React.FC<WigleRunsTableRowProps> = ({
             </div>
           </td>
         );
-      case 'rows_inserted':
+      case 'rows_inserted': {
+        const isBt = run.source === 'wigle_bt';
         return (
-          <td key={col.id} className="px-3 py-2 text-right tabular-nums font-mono text-slate-400">
+          <td
+            key={col.id}
+            className="px-3 py-2 text-right tabular-nums font-mono text-slate-400"
+            title={
+              isBt
+                ? `Bluetooth policy: ${run.rowsInserted.toLocaleString()} rows written (inserts & updates on conflict)`
+                : `Wi-Fi policy: ${run.rowsInserted.toLocaleString()} net-new rows inserted`
+            }
+          >
             {run.rowsInserted.toLocaleString()}
+            {isBt && (
+              <span
+                className="ml-1 text-[9px] text-purple-400 font-sans"
+                title="Includes updates on conflict"
+              >
+                *
+              </span>
+            )}
           </td>
         );
+      }
       case 'rows_returned':
         return (
           <td key={col.id} className="px-3 py-2 text-right tabular-nums font-mono text-slate-400">

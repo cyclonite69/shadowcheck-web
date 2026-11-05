@@ -54,7 +54,7 @@ describe('WigleRunsCard jurisdiction display', () => {
     ]);
 
     expect(html).toContain('State/Territory');
-    expect(html).toContain('Last Run Rows Inserted');
+    expect(html).toContain('Last Run Rows Written');
     expect(html).toContain('MI — Michigan');
     expect(html).toContain('PR — Puerto Rico');
     expect(html).toContain('GU — Guam');

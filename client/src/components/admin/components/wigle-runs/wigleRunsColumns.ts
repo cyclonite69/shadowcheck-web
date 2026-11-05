@@ -15,7 +15,7 @@ export const COLUMNS: ColDef[] = [
   { id: 'progress', label: 'Progress', sortKey: null, defaultVisible: true },
   {
     id: 'rows_inserted',
-    label: 'Last Run Rows Inserted',
+    label: 'Last Run Rows Written',
     sortKey: 'rows_inserted',
     defaultVisible: true,
   },
