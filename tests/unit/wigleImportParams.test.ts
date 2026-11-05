@@ -201,4 +201,17 @@ describe('wigleImport params helpers', () => {
     expect(validateImportQuery({})).toBeNull(); // Default country US makes it valid
     expect(validateImportQuery({ ssid: 'fbi' })).toBeNull();
   });
+
+  describe('SSID pattern handling and wildcard serialization', () => {
+    it('maps query.ssid directly to ssidlike without altering wildcards or stripping backslashes', () => {
+      const standardWildcard = buildSearchParams({ ssid: 'x_%', country: 'US' });
+      expect(standardWildcard.get('ssidlike')).toBe('x_%');
+      expect(standardWildcard.toString()).toContain('ssidlike=x_%25');
+
+      const escapedWildcard = buildSearchParams({ ssid: 'x\\_%', country: 'US' });
+      expect(escapedWildcard.get('ssidlike')).toBe('x\\_%');
+      // Verifies URLSearchParams properly encodes backslash (%5C) and percent (%25)
+      expect(escapedWildcard.toString()).toContain('ssidlike=x%5C_%25');
+    });
+  });
 });

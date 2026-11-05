@@ -116,6 +116,16 @@ describe('buildBtSearchParams', () => {
     const params = buildBtSearchParams({ country: 'US' }, 'cursor-123');
     expect(params.toString()).toContain('searchAfter=cursor-123');
   });
+
+  it('preserves and encodes escaped wildcards in namelike without stripping backslashes', () => {
+    const standard = buildBtSearchParams({ namelike: 'x_%', country: 'US' });
+    expect(standard.get('namelike')).toBe('x_%');
+    expect(standard.toString()).toContain('namelike=x_%25');
+
+    const escaped = buildBtSearchParams({ namelike: 'x\\_%', country: 'US' });
+    expect(escaped.get('namelike')).toBe('x\\_%');
+    expect(escaped.toString()).toContain('namelike=x%5C_%25');
+  });
 });
 
 describe('getBtSearchTerm', () => {

@@ -988,7 +988,7 @@
 - wigle popup home distance via haversine, channel/frequency passthrough ([c15e745](https://github.com/cyclonite69/shadowcheck-web/commit/c15e7450ac90fa876578bba69c1a2f7eaabebc3c))
 - wigle tooltip timestamps — use firsttime/lasttime from feature props ([3ac9a02](https://github.com/cyclonite69/shadowcheck-web/commit/3ac9a0293ff6d8ade9434b5fbee984e5425c7352)), closes [#N](https://github.com/cyclonite69/shadowcheck-web/issues/N)
 - **wigle-bt-import:** dispatch resume by source and add quota pre-flight ([d51d6e1](https://github.com/cyclonite69/shadowcheck-web/commit/d51d6e11ce6b1207da5daffa04e3ace3d40c2cc3))
-- **wigle-bt-import:** record page result count and canonical ledger status ([6cdd2ff](https://github.com/cyclonite69/shadowcheck-web/commit/6cdd2ff36c23570c312c8529eced641f522478cd))
+- **wigle-bt-import:** record page result count and canonical ledger status ([40c36c7](https://github.com/cyclonite69/shadowcheck-web/commit/40c36c720ecb2ebdf6f67f7bf290e5e776bfe740))
 - **wigle-detail:** remove locally-administered MAC guard from v3 detail lookups ([b3e9799](https://github.com/cyclonite69/shadowcheck-web/commit/b3e979998f6012152d02a1a63b3b62eb05132a28))
 - **wigle-detail:** render forensic tooltip HTML in preview pane on observation select ([33d4f7d](https://github.com/cyclonite69/shadowcheck-web/commit/33d4f7d9e9f2713c932d2cf38b26476105208544))
 - **wigle-enrichment:** guard resume by source/status and reject targeted runs without a target list ([cdab7ce](https://github.com/cyclonite69/shadowcheck-web/commit/cdab7cea33ae5841abef3b866d87201b98bebf20))
