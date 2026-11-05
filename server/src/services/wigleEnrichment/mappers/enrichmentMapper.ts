@@ -1,4 +1,4 @@
-import { stripNullBytes } from '../../wigleDetailTransforms';
+import { stripNullBytes, stripNullBytesDeep } from '../../wigleDetailTransforms';
 
 export type WigleV3ObservationRow = {
   netid: string;
@@ -177,8 +177,8 @@ export const mapV3ApiDetailToNetworkDetail = (
     last_seen: data.lastSeen !== null && data.lastSeen !== undefined ? String(data.lastSeen) : null,
     last_update:
       data.lastUpdate !== null && data.lastUpdate !== undefined ? String(data.lastUpdate) : null,
-    street_address: JSON.stringify(data.streetAddress ?? null),
-    location_clusters: JSON.stringify(locationClusters ?? []),
+    street_address: JSON.stringify(stripNullBytesDeep(data.streetAddress ?? null)),
+    location_clusters: JSON.stringify(stripNullBytesDeep(locationClusters ?? [])),
   };
 };
 

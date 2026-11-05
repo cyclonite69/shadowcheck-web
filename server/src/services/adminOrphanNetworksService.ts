@@ -4,7 +4,7 @@ const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
 
 const { escapeLikePattern } = require('../utils/escapeSQL');
-import { stripNullBytes, inferWigleEndpoint } from './wigleDetailTransforms';
+import { stripNullBytes, stripNullBytesDeep, inferWigleEndpoint } from './wigleDetailTransforms';
 import { fetchUpstream, importObservations } from './wigleDetailService';
 
 type ListOrphanNetworksOptions = {
@@ -270,8 +270,8 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
       first_seen: data.firstSeen,
       last_seen: data.lastSeen,
       last_update: data.lastUpdate,
-      street_address: JSON.stringify(data.streetAddress || null),
-      location_clusters: JSON.stringify(data.locationClusters || []),
+      street_address: JSON.stringify(stripNullBytesDeep(data.streetAddress || null)),
+      location_clusters: JSON.stringify(stripNullBytesDeep(data.locationClusters || [])),
     });
 
     const counts = await importObservations(data.networkId, data.locationClusters);

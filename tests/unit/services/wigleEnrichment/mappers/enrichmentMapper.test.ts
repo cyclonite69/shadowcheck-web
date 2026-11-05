@@ -106,6 +106,94 @@ describe('enrichmentMapper', () => {
       expect(row.ssid).toBe('SSID1');
       expect(row.name).toBe('TestNet');
     });
+
+    it('strips null bytes deeply from nested locationClusters and streetAddress JSON strings', () => {
+      const row = mapV3ApiDetailToNetworkDetail({
+        networkId: '2c:ab:33:41:e9:a6',
+        name: 'Apple\u0000Device',
+        type: 'bt',
+        locationClusters: [
+          {
+            clusterSsid: 'BLE\u0000Tag\u0000',
+            locations: [
+              {
+                latitude: '43.01',
+                longitude: '-83.68',
+                ssid: 'Inner\u0000Name',
+                comment: 'Null\u0000Payload',
+              },
+            ],
+          },
+        ],
+        streetAddress: {
+          city: 'Flint\u0000',
+          road: 'S\u0000Saginaw\u0000St',
+          country: 'United\u0000States',
+        },
+      });
+
+      // Assert row scalars are sanitized
+      expect(row.name).toBe('AppleDevice');
+      expect(row.ssid).toBe('BLETag');
+
+      // Assert JSON strings do not contain \u0000
+      expect(row.location_clusters).not.toContain('\u0000');
+      expect(row.street_address).not.toContain('\u0000');
+
+      // Parse JSON to verify structure and content
+      const parsedClusters = JSON.parse(row.location_clusters);
+      expect(parsedClusters[0].clusterSsid).toBe('BLETag');
+      expect(parsedClusters[0].locations[0].ssid).toBe('InnerName');
+      expect(parsedClusters[0].locations[0].comment).toBe('NullPayload');
+
+      const parsedAddress = JSON.parse(row.street_address);
+      expect(parsedAddress).toEqual({
+        city: 'Flint',
+        road: 'SSaginawSt',
+        country: 'UnitedStates',
+      });
+    });
+
+    it('preserves ordinary legitimate strings in locationClusters and streetAddress without alteration', () => {
+      const clusters = [
+        {
+          clusterSsid: 'ValidSSID-123',
+          locations: [
+            {
+              latitude: 42.5,
+              longitude: -83.2,
+              ssid: 'ValidSSID-123',
+            },
+          ],
+        },
+      ];
+      const address = {
+        city: 'Detroit',
+        region: 'Michigan',
+        road: 'Woodward Ave',
+        country: 'United States',
+      };
+
+      const row = mapV3ApiDetailToNetworkDetail({
+        networkId: '00:11:22:33:44:55',
+        name: 'LegitimateNet',
+        locationClusters: clusters,
+        streetAddress: address,
+      });
+
+      expect(JSON.parse(row.location_clusters)).toEqual(clusters);
+      expect(JSON.parse(row.street_address)).toEqual(address);
+    });
+
+    it('handles null/undefined streetAddress and missing locationClusters gracefully', () => {
+      const row = mapV3ApiDetailToNetworkDetail({
+        networkId: '00:11:22:33:44:55',
+        name: 'EmptyNet',
+      });
+
+      expect(row.street_address).toBe('null');
+      expect(row.location_clusters).toBe('[]');
+    });
   });
 
   describe('parseWigleStatsCreditSnapshot', () => {

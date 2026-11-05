@@ -1098,6 +1098,7 @@
 - **wigle:** stabilize map layer rendering and event binding ([1ce43ce](https://github.com/cyclonite69/shadowcheck-web/commit/1ce43ce462bc4c33e07d59e1370263ff519a27d8))
 - **wigle:** stabilize overlay lifecycle and field data loading ([6e0205a](https://github.com/cyclonite69/shadowcheck-web/commit/6e0205af65af72a7ca0a85b202dab53be16e8bcc))
 - **wigle:** standardize KML layer initialization via callback ([f52f6b2](https://github.com/cyclonite69/shadowcheck-web/commit/f52f6b2c160f2fa4da098cbd5b63e7ae979bc039))
+- **wigle:** strip null bytes from nested enrichment and orphan payloads ([2c98547](https://github.com/cyclonite69/shadowcheck-web/commit/2c98547e56dbffda30373ab6500546a7b3d5ee19))
 - **wigle:** surface ledger coverage without auto probes ([17284d3](https://github.com/cyclonite69/shadowcheck-web/commit/17284d31da8fc590f9e4ecaec5dc893d26909a93))
 - **wigle:** swap v3 observation timestamps and fix address locality ([9d73034](https://github.com/cyclonite69/shadowcheck-web/commit/9d73034c939a3ed385c89f6437a286e4e278d66a))
 - **wigle:** treat missing detail as a no-hit ([7f2fe2c](https://github.com/cyclonite69/shadowcheck-web/commit/7f2fe2c9bc061938436a374b6fcf10ac45a52219))
