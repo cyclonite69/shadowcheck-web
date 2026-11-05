@@ -117,11 +117,12 @@ Generated from Git HEAD \`${inventory.head}\`.
 
 This is a read-only audit. It does not run Jest, modify coverage reports, or determine that a test is meaningful. Static import matching and the integration/test-quality sections are candidates for human review, not proof of missing behavior coverage.
 
-Coverage data is the **latest available snapshot**; this audit does not establish that it is current.
+Coverage data is the **latest available snapshot**; this audit does not establish that it is current or identify the command that produced it.
 
 - Summary artifact: **${result.coverageSummaryStatus === 'missing' ? 'missing' : result.coverageSummaryStatus === 'present-unusable' ? 'present, but no usable per-file metrics matched the inventory' : `usable per-file metrics matched ${result.coverageSummaryMatchedFiles} inventoried module(s) (branches: ${result.coverageBranchMatchedFiles}; functions: ${result.coverageFunctionMatchedFiles})`}**${result.coverageSummaryModifiedAt ? `; file modification time ${result.coverageSummaryModifiedAt}` : ''}.
 - Function details artifact: **${result.coverageFinalPresent ? 'present' : 'missing'}**${result.coverageFinalModifiedAt ? `; file modification time ${result.coverageFinalModifiedAt}` : ''}. ${artifactTimeNote}
-- Missing per-file records are not treated as zero coverage. A usable snapshot may still cover only a subset of modules.
+- Jest can narrow coverage collection with \`--findRelatedTests\`, \`--onlyChanged\`, or an explicit \`--collectCoverageFrom\`; the producing command cannot be determined from the artifacts alone.
+- Matched-module counts are record counts, not a coverage percentage. Missing per-file records are not treated as zero coverage; a usable snapshot may still cover only a subset of modules.
 
 ${
   result.coverageSummaryStatus !== 'usable' ||

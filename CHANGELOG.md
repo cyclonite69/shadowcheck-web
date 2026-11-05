@@ -127,6 +127,7 @@
 - apply quality filters to api_network_explorer_mv ([8558caf](https://github.com/cyclonite69/shadowcheck-web/commit/8558caf7f7ca5b6e2e37e4c029ec2ee17f928f71))
 - apply safe auto-fixes from audit (dead code, docker, scripts, security) ([512f968](https://github.com/cyclonite69/shadowcheck-web/commit/512f96845c798ce64b63cc9da75d2949cd641a2f))
 - **attachments:** resolve note attachment upload disappearing bug ([a760b08](https://github.com/cyclonite69/shadowcheck-web/commit/a760b08280bcee003c731d86004667c644ba8732))
+- **audit:** clarify coverage snapshot provenance ([7a65dd3](https://github.com/cyclonite69/shadowcheck-web/commit/7a65dd3856e6cf584e2911e8f215238b5eec30d1))
 - **auth:** allow self-service password changes on hardened db roles ([5e6e44f](https://github.com/cyclonite69/shadowcheck-web/commit/5e6e44fb0e4176f07398dff98398e9fe9b26f7af))
 - **auth:** avoid false 401 lockouts on login ([2332a1e](https://github.com/cyclonite69/shadowcheck-web/commit/2332a1efc98bcab588d5935722d55cbd123e1205))
 - **auth:** fall back to postgres superuser for admin bootstrap ([e539e15](https://github.com/cyclonite69/shadowcheck-web/commit/e539e15f7b459d411cb15687bc827e5705534302))

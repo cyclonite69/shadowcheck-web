@@ -192,6 +192,13 @@ describe('architecture audit tooling', () => {
     expect(report).toContain('2026-10-13T10:06:14.268Z');
     expect(report).toContain('Function details artifact: **missing**');
     expect(report).toContain('summary-level function totals remain available');
+    expect(report).toContain('Matched-module counts are record counts, not a coverage percentage');
+    expect(report).toContain('Missing per-file records are not treated as zero coverage');
+    expect(report).toContain('a usable snapshot may still cover only a subset of modules');
+    expect(report).toContain(
+      '`--findRelatedTests`, `--onlyChanged`, or an explicit `--collectCoverageFrom`'
+    );
+    expect(report).toContain('the producing command cannot be determined from the artifacts alone');
   });
 
   it('uses function names only when detailed counts reconcile with summary metrics', () => {
