@@ -117,11 +117,12 @@ describe('SurveillanceDetectionRepository Integration', () => {
 
     expect(match).toBeDefined();
     expect(match?.device_type).toBe('AXON_BODY_CAMERA');
-    expect(match?.base_likelihood).toBe(82);
+    expect(match?.base_likelihood).toBe(35);
+    expect(match?.match_quality).toBe('WEAK');
     expect(match?.detection_method).toBe('ssid_pattern');
     expect(match?.matched_signals).toMatchObject({
-      pattern: '^X_[A-Za-z][A-Za-z]+$',
-      note: 'officer_assignment_ssid',
+      pattern: '^X_[A-Za-z0-9_-]+$',
+      note: 'bwc_naming_heuristic_low_confidence',
     });
   });
 

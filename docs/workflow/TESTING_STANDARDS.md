@@ -135,6 +135,41 @@ from `coverage/coverage-summary.json`. It contains:
 The snapshot file (`docs/metrics/coverage_snapshot.json`) is updated on every
 `coverage:report` or `coverage:refresh` run and should be committed alongside the report.
 
+### Test Gap Audit
+
+Run `npm run audit:test-gaps` for a separate, read-only report at
+`docs/audits/YYYY-MM-DD-test-gap-audit.md`. Use `npm run audit:test-gaps -- --stdout`
+to preview without writing a report. Running the generator again with the same
+date intentionally replaces that date's report. The audit reuses the
+repository's static inventory and reads existing Jest coverage artifacts; it
+never runs tests or refreshes `docs/metrics/coverage_report.md`.
+
+The report covers source modules without direct test imports, branch and function
+coverage, skipped/todo markers, unresolved relative test imports, and two
+human-review sections: routes with unit tests but no direct integration-test
+import, and test files without recognizable `expect`/`assert` calls. Those
+static integration and test-quality signals are heuristics, not proof that
+coverage is absent or tests are ineffective. Branch/function sections are
+based only on usable per-file records matching inventoried modules; missing
+records are not treated as zero coverage. The report distinguishes a missing
+summary artifact from one present without usable matching metrics, reports
+matched-file counts and artifact modification times, and labels coverage as the
+latest available snapshot rather than asserting freshness. Modification time
+does not prove when Jest ran. Branch and function availability are reported
+independently. Function names from `coverage/coverage-final.json` are included
+only when their per-file function totals and covered counts reconcile with the
+summary; timestamps are disclosed but are not treated as run identifiers. If
+function details are missing or inconsistent, summary-level function totals
+remain available but names are not. Run `npm run test:cov` only when fresh
+coverage data is intentionally needed. The audit does not run Jest or
+regenerate/commit coverage reports.
+
+Direct test-import matching is also heuristic and currently targets
+function-bearing source modules: type-only imports and Jest mock references can
+count as references, while tests reaching a module indirectly may be reported
+as candidates. Review findings rather than treating them as proof that a module
+has or lacks behavioral tests.
+
 ---
 
 ## Test Structure

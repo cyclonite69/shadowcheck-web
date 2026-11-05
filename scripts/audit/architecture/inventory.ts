@@ -11,7 +11,7 @@ import type {
   SourceRecord,
 } from './types';
 
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx'];
 
 const toPosix = (value: string): string => value.split(path.sep).join('/');
 

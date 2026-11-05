@@ -15,6 +15,27 @@ jest.mock('../../../client/src/hooks/useLogout', () => ({
   }),
 }));
 
+jest.mock('../../../client/src/components/geospatial/hooks/useGeospatialLayerCounts', () => ({
+  useGeospatialLayerCounts: () => ({
+    counts: {
+      home: null,
+      wigleV2: null,
+      wigleV3: null,
+      wigleKml: null,
+      fieldObservations: null,
+      fieldOffices: null,
+      residentAgencies: null,
+      courthouses: null,
+      alpr: null,
+      shotspotterZones: null,
+      shotspotterSensors: null,
+    },
+    loading: false,
+    error: null,
+    refresh: () => Promise.resolve(),
+  }),
+}));
+
 describe('MapToolbarNav and Header Label', () => {
   beforeEach(() => {
     jest.clearAllMocks();

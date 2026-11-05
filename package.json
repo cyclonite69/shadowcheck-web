@@ -29,6 +29,7 @@
     "policy:secrets": "npm run policy:secret-disk && npm run policy:secret-scan",
     "policy:modularity": "bash scripts/check-doc-line-counts.sh && node scripts/check-modularity.js",
     "audit:cruft": "tsx scripts/audit/cruft-audit.ts",
+    "audit:test-gaps": "tsx scripts/audit/test-gap-audit.ts",
     "audit:modularity": "tsx scripts/audit/modularity-audit.ts",
     "audit:modularity:light": "tsx scripts/audit/modularity-audit.ts --stdout --top 25",
     "audit:architecture": "tsx scripts/audit/full-architecture-audit.ts",
