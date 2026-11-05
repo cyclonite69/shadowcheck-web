@@ -146,7 +146,7 @@ const buildWigleObservationsQuery = (
                     frequency, channel, encryption, noise, snr, month
              FROM app.wigle_v3_observations
              WHERE netid = $1
-             ORDER BY observed_at DESC`;
+             ORDER BY observed_at DESC, id DESC`;
 
   if (limit !== null && limit !== undefined) {
     queryParams.push(limit);

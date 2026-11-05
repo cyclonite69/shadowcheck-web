@@ -55,8 +55,45 @@ describe('wigle query builders', () => {
     expect(v3.sql).toContain('OFFSET $3');
     expect(v3.sql).not.toContain('api_network_explorer_mv');
     expect(observations.sql).toContain('WHERE netid = $1');
+    expect(observations.sql).toContain('ORDER BY observed_at DESC, id DESC');
     expect(observations.sql).toContain('LIMIT $2');
     expect(observations.sql).toContain('OFFSET $3');
     expect(count.sql).toContain('COUNT(*) as total');
+  });
+
+  describe('buildWigleObservationsQuery pagination and stable ordering', () => {
+    it('uses stable tie-breaker ordering and preserves param numbering across all 4 pagination combos', () => {
+      // 1. Neither limit nor offset
+      const noPagination = buildWigleObservationsQuery('net1');
+      expect(noPagination.sql).toContain('WHERE netid = $1');
+      expect(noPagination.sql).toContain('ORDER BY observed_at DESC, id DESC');
+      expect(noPagination.sql).not.toContain('LIMIT');
+      expect(noPagination.sql).not.toContain('OFFSET');
+      expect(noPagination.queryParams).toEqual(['net1']);
+
+      // 2. Limit only
+      const limitOnly = buildWigleObservationsQuery('net1', 50);
+      expect(limitOnly.sql).toContain('WHERE netid = $1');
+      expect(limitOnly.sql).toContain('ORDER BY observed_at DESC, id DESC');
+      expect(limitOnly.sql).toContain('LIMIT $2');
+      expect(limitOnly.sql).not.toContain('OFFSET');
+      expect(limitOnly.queryParams).toEqual(['net1', 50]);
+
+      // 3. Offset only
+      const offsetOnly = buildWigleObservationsQuery('net1', null, 100);
+      expect(offsetOnly.sql).toContain('WHERE netid = $1');
+      expect(offsetOnly.sql).toContain('ORDER BY observed_at DESC, id DESC');
+      expect(offsetOnly.sql).not.toContain('LIMIT');
+      expect(offsetOnly.sql).toContain('OFFSET $2');
+      expect(offsetOnly.queryParams).toEqual(['net1', 100]);
+
+      // 4. Both limit and offset
+      const both = buildWigleObservationsQuery('net1', 50, 100);
+      expect(both.sql).toContain('WHERE netid = $1');
+      expect(both.sql).toContain('ORDER BY observed_at DESC, id DESC');
+      expect(both.sql).toContain('LIMIT $2');
+      expect(both.sql).toContain('OFFSET $3');
+      expect(both.queryParams).toEqual(['net1', 50, 100]);
+    });
   });
 });
