@@ -2,6 +2,7 @@ import logger from '../../logging/logger';
 import { buildBtSearchParams, type WigleBtImportParams } from './btParams';
 import { wigleGatewayFetch } from '../wigle/wigleGateway';
 import { getImportSearchTimeoutMs } from '../wigleSearchApiService';
+import { updateLedgerOutcome } from '../wigleRequestLedger';
 
 export interface WigleBtPageResponse {
   success?: boolean;
@@ -64,6 +65,66 @@ export const fetchBtPage = async (
     throw error;
   }
 
-  logger.info(`[WiGLE BT Import] Request succeeded | url=${apiUrl}`);
-  return response.json() as Promise<WigleBtPageResponse>;
+  let data: WigleBtPageResponse;
+  try {
+    data = (await response.json()) as WigleBtPageResponse;
+  } catch (parseErr: any) {
+    if (gatewayResult.ledgerId) {
+      updateLedgerOutcome('search', gatewayResult.ledgerId, {
+        status: 'error',
+        duration_ms: gatewayResult.latencyMs,
+        http_status: response.status,
+        error_message: `Malformed JSON response: ${parseErr?.message || String(parseErr)}`,
+      });
+    }
+    throw parseErr;
+  }
+
+  // Handle unsuccessful responses returned with HTTP 200 (e.g. { success: false, message: "..." })
+  if (data && typeof data === 'object' && data.success === false) {
+    const errorMsg =
+      (data as any).message || (data as any).error || 'WiGLE BT API returned success=false';
+    if (gatewayResult.ledgerId) {
+      updateLedgerOutcome('search', gatewayResult.ledgerId, {
+        status: 'error',
+        duration_ms: gatewayResult.latencyMs,
+        http_status: response.status,
+        error_message: errorMsg,
+      });
+    }
+    const error: any = new Error(errorMsg);
+    error.status = response.status;
+    error.details = JSON.stringify(data);
+    throw error;
+  }
+
+  const results = (data as any)?.results;
+  const resultCount = Array.isArray(results) ? results.length : null;
+
+  if (resultCount === null) {
+    if (gatewayResult.ledgerId) {
+      updateLedgerOutcome('search', gatewayResult.ledgerId, {
+        status: 'error',
+        duration_ms: gatewayResult.latencyMs,
+        http_status: response.status,
+        error_message: 'Malformed WiGLE BT response: missing or invalid results array',
+      });
+    }
+    const error: any = new Error('Malformed WiGLE BT response: missing or invalid results array');
+    error.status = response.status;
+    error.details = JSON.stringify(data);
+    throw error;
+  }
+
+  if (gatewayResult.ledgerId) {
+    updateLedgerOutcome('search', gatewayResult.ledgerId, {
+      status: 'success',
+      duration_ms: gatewayResult.latencyMs,
+      http_status: response.status,
+      result_count: resultCount,
+    });
+  }
+
+  logger.info(`[WiGLE BT Import] Request succeeded | url=${apiUrl} | results=${resultCount}`);
+  return data;
 };
