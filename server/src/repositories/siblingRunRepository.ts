@@ -47,11 +47,16 @@ export class SiblingRunRepository {
   }
 
   /**
-   * Fetch the cutoff timestamp of the most recent sibling run.
+   * Fetch the start timestamp of the most recent successfully completed full or incremental scan.
+   * Test-mode runs (targeted BSSIDs or maxBatches-capped) are excluded so that a narrow targeted
+   * run cannot advance the global incremental watermark past unprocessed networks.
    */
   async getPreviousRunCutoff(): Promise<string | null> {
     const cutoffResult = await adminQuery(
-      'SELECT MAX(computed_at) AS cutoff FROM app.network_sibling_pairs'
+      `SELECT MAX(started_at) AS cutoff
+       FROM app.sibling_runs
+       WHERE status = 'completed'
+         AND run_mode IN ('full', 'incremental')`
     );
     return cutoffResult.rows[0]?.cutoff ?? null;
   }

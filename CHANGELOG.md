@@ -816,6 +816,7 @@
 - **siblings:** add Netgear dual-band sibling rule ([036b802](https://github.com/cyclonite69/shadowcheck-web/commit/036b8024f01cffd5f98da8456d4012adc71f2aaf))
 - **siblings:** add Ubiquiti UniFi VAP sibling rule ([b35faa0](https://github.com/cyclonite69/shadowcheck-web/commit/b35faa0266193e2346578c1d03d0d80a85a986e5))
 - **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
+- **siblings:** exclude test-mode runs from incremental watermark cutoff ([6985d7f](https://github.com/cyclonite69/shadowcheck-web/commit/6985d7fd8b48acc4d8511f311ba1bf44c15b6fa7))
 - **siblings:** guard GM hotspot cross-vehicle pairs ([61834d2](https://github.com/cyclonite69/shadowcheck-web/commit/61834d240f1913c95067dac9f8d6c0633fe2671b))
 - **siblings:** harden Cisco chassis matching rules ([c462d24](https://github.com/cyclonite69/shadowcheck-web/commit/c462d24eb0965d906eedcb0e738205c5f9dc74b9))
 - **siblings:** harden Cradlepoint fleet matching ([dc23ffa](https://github.com/cyclonite69/shadowcheck-web/commit/dc23ffadb53553b8619b4ea0c32a6c080eb57df3))
