@@ -1432,6 +1432,7 @@
 - **sibling:** add Mist Systems cross-band rule to find_sibling_radios ([ecb0716](https://github.com/cyclonite69/shadowcheck-web/commit/ecb0716bdf6a4da2ae87af3a97b80bfa7055cc39))
 - **sibling:** add mv_sibling_groups materialized view with TC and refresh wiring ([d15bb1a](https://github.com/cyclonite69/shadowcheck-web/commit/d15bb1a7c235bc378d54207f2a38075d7e945a62))
 - **sibling:** replace broad GM rule with six validated Qualcomm LAA patterns ([667a9d0](https://github.com/cyclonite69/shadowcheck-web/commit/667a9d010aca769a2dcd46b7f3b90bef0728f17a))
+- **siblings:** add forensic movement and weight calibration ([832c67d](https://github.com/cyclonite69/shadowcheck-web/commit/832c67d088e8e1beafa5252af4a50098b92d54b3))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 - **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
 - **siblings:** consolidate asymmetric twins and purge SSID blacklists ([35ad8d5](https://github.com/cyclonite69/shadowcheck-web/commit/35ad8d5e6f6b35ba178396644a6d1c0c6d4ffa9d))
