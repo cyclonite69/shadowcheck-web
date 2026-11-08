@@ -176,6 +176,12 @@ The current architecture separates the process into several stages:
 4. `app.network_sibling_overrides` allows analysts to manually confirm or block relationships.
 5. `app.network_siblings_effective` exposes the resolved graph used by APIs and the Geospatial Explorer.
 
+### Refresh Coverage and Watermarks
+
+Scheduled sibling refreshes run incrementally. Their seed cutoff is the `started_at` timestamp of the latest successfully completed sibling scan; pair `computed_at` values describe when individual edges were written and are not scan checkpoints. The refresh seeds BSSIDs from `app.api_network_explorer_mv` whose `last_seen` is newer than that cutoff.
+
+An incremental refresh does not revisit older observations when detection rules change. Run a full sibling refresh after rule changes to evaluate historical networks. Networks absent from `app.api_network_explorer_mv` are outside the seed set; that materialized view requires qualifying geolocated observations.
+
 ### Key Advantages of the Sibling Inference Architecture
 
 - **Device-level reasoning**: Multiple BSSIDs can be interpreted as one probable physical device or device family.
