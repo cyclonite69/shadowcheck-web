@@ -55,10 +55,36 @@ jest.mock('../../server/src/services/geocoding/cacheStore', () => ({
 
 describe('GeocodingDaemon', () => {
   const originalOverpassEnabled = process.env.GEOCODING_OVERPASS_ENABLED;
+  let daemonLoopStartedByTest = false;
+
+  const waitForDaemonToStop = async (testName: string) => {
+    const deadline = Date.now() + 2000;
+    while (geocodeDaemon.running && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    if (geocodeDaemon.running) {
+      throw new Error(
+        `Timed out waiting for geocoding daemon to stop after "${testName}" (stopRequested=${geocodeDaemon.stopRequested})`
+      );
+    }
+  };
+
+  const startDaemonAndTrack = async (...args: Parameters<typeof startGeocodingDaemon>) => {
+    const result = await startGeocodingDaemon(...args);
+    daemonLoopStartedByTest ||= result.started;
+    return result;
+  };
+
+  const runDaemonLoopAndTrack = async (...args: Parameters<typeof runGeocodeDaemonLoop>) => {
+    daemonLoopStartedByTest ||= Boolean(geocodeDaemon.config);
+    return runGeocodeDaemonLoop(...args);
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     (getDaemonProviderRunOptions as jest.Mock).mockReset();
+    daemonLoopStartedByTest = false;
     // Reset geocodeDaemon state manually because it's a shared object
     geocodeDaemon.config = null;
     geocodeDaemon.running = false;
@@ -83,11 +109,18 @@ describe('GeocodingDaemon', () => {
     });
   });
 
-  afterEach(() => {
-    if (originalOverpassEnabled === undefined) {
-      delete process.env.GEOCODING_OVERPASS_ENABLED;
-    } else {
-      process.env.GEOCODING_OVERPASS_ENABLED = originalOverpassEnabled;
+  afterEach(async () => {
+    try {
+      if (daemonLoopStartedByTest) {
+        geocodeDaemon.stopRequested = true;
+        await waitForDaemonToStop('afterEach cleanup');
+      }
+    } finally {
+      if (originalOverpassEnabled === undefined) {
+        delete process.env.GEOCODING_OVERPASS_ENABLED;
+      } else {
+        process.env.GEOCODING_OVERPASS_ENABLED = originalOverpassEnabled;
+      }
     }
   });
 
@@ -102,11 +135,10 @@ describe('GeocodingDaemon', () => {
         return { processed: 0 };
       });
 
-      const result = await startGeocodingDaemon({}, runGeocodeCacheUpdate);
+      const result = await startDaemonAndTrack({}, runGeocodeCacheUpdate);
 
       expect(result.started).toBe(true);
-      // Wait a bit for the loop to start and finish
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await waitForDaemonToStop('should load persisted config and start the loop');
 
       expect(loadPersistedDaemonConfig).toHaveBeenCalled();
       expect(persistDaemonConfig).toHaveBeenCalled();
@@ -122,14 +154,14 @@ describe('GeocodingDaemon', () => {
         geocodeDaemon.stopRequested = true;
         return { processed: 0 };
       });
-      await startGeocodingDaemon(inputConfig as any, runGeocodeCacheUpdate);
+      await startDaemonAndTrack(inputConfig as any, runGeocodeCacheUpdate);
 
       expect(normalizeDaemonConfig).toHaveBeenCalledWith(expect.objectContaining(inputConfig));
       expect(geocodeDaemon.config?.provider).toBe('opencage');
 
       // Cleanup
       geocodeDaemon.stopRequested = true;
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await waitForDaemonToStop('should use provided config and override persisted config');
     });
 
     it('should not start if already running', async () => {
@@ -210,7 +242,7 @@ describe('GeocodingDaemon', () => {
           return { processed: 0 };
         });
 
-      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      await runDaemonLoopAndTrack(runGeocodeCacheUpdate);
 
       expect(runGeocodeCacheUpdate).toHaveBeenCalledTimes(2);
       expect(geocodeDaemon.lastResult).toEqual({ processed: 0 });
@@ -232,7 +264,7 @@ describe('GeocodingDaemon', () => {
         throw new Error('Network Error');
       });
 
-      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      await runDaemonLoopAndTrack(runGeocodeCacheUpdate);
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('tick failed'),
@@ -248,7 +280,7 @@ describe('GeocodingDaemon', () => {
         return { processed: 0 };
       });
 
-      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      await runDaemonLoopAndTrack(runGeocodeCacheUpdate);
       expect(runGeocodeCacheUpdate).toHaveBeenCalledTimes(1);
     });
 
@@ -256,7 +288,7 @@ describe('GeocodingDaemon', () => {
       geocodeDaemon.config = null;
       const runGeocodeCacheUpdate = jest.fn();
 
-      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      await runDaemonLoopAndTrack(runGeocodeCacheUpdate);
       expect(runGeocodeCacheUpdate).not.toHaveBeenCalled();
     });
   });
@@ -271,7 +303,7 @@ describe('GeocodingDaemon', () => {
         return { processed: 0 };
       });
 
-      await startGeocodingDaemon({}, runGeocodeCacheUpdate);
+      await startDaemonAndTrack({}, runGeocodeCacheUpdate);
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Failed to load persisted daemon config before start'),
@@ -298,7 +330,7 @@ describe('GeocodingDaemon', () => {
         return { processed: 0 };
       });
 
-      await startGeocodingDaemon(config as any, runGeocodeCacheUpdate);
+      await startDaemonAndTrack(config as any, runGeocodeCacheUpdate);
 
       expect(resolveProviderCredentials).toHaveBeenCalledWith('mapbox');
       expect(resolveProviderCredentials).toHaveBeenCalledWith('nominatim');
@@ -334,8 +366,10 @@ describe('GeocodingDaemon', () => {
         return { processed: 1 };
       });
 
-      const result = await startGeocodingDaemon(config as any, runGeocodeCacheUpdate);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      const result = await startDaemonAndTrack(config as any, runGeocodeCacheUpdate);
+      await waitForDaemonToStop(
+        'starts with a non-Overpass primary and skips only the disabled Overpass fallback'
+      );
 
       expect(result.started).toBe(true);
       expect(ensureProviderReady).toHaveBeenCalledWith('mapbox', {});
@@ -431,13 +465,13 @@ describe('GeocodingDaemon', () => {
       const dispatchedProviders: string[] = [];
       const runGeocodeCacheUpdate = jest.fn().mockImplementation(async (options) => {
         dispatchedProviders.push(options.provider);
-        if (dispatchedProviders.length === 4) {
+        if (dispatchedProviders.length >= 4) {
           geocodeDaemon.stopRequested = true;
         }
         return { processed: 1 };
       });
 
-      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      await runDaemonLoopAndTrack(runGeocodeCacheUpdate);
 
       expect(dispatchedProviders).toEqual(['nominatim', 'geocodio', 'nominatim', 'geocodio']);
       expect(config.providers.map((item) => item.provider)).toEqual([
@@ -497,7 +531,7 @@ describe('GeocodingDaemon', () => {
         return { processed: 1 };
       });
 
-      await runGeocodeDaemonLoop(jest.fn(), runInternal);
+      await runDaemonLoopAndTrack(jest.fn(), runInternal);
 
       expect(dispatchedProviders).toHaveLength(4);
       expect(maxConcurrentWorkers).toBeGreaterThan(1);
