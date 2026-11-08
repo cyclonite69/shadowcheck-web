@@ -119,7 +119,7 @@ const runSiblingDetectionJob = async (options: any = {}) => {
     maxDistanceM,
     minCandidateConf,
     maxBatches,
-    // Scheduled runs are incremental — only process BSSIDs not yet in sibling_pairs.
+    // Scheduled runs seed BSSIDs seen since the latest completed scan started.
     // Manual runs (options.incremental explicitly false) do a full pass.
     incremental: options.incremental !== undefined ? options.incremental : true,
   });
