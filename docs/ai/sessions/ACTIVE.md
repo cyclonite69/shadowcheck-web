@@ -408,6 +408,16 @@ Full suite after all merges: **531/531 suites, 5020/5020 tests, 0 failures**
 
 ---
 
+## Dependency Security Remediation — 2026-11-08
+
+| Package | From   | To     | Source                                         | Status  | Validation                                                                                                         | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------- | ------ | ------ | ---------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| qs      | 6.16.0 | 6.16.1 | Operator-approved local fix (no Dependabot PR) | Pending | npm ls ✓ lint ✓ type-check ✓ build ✓; unit tests 576 suites / 5,830 tests ✓ (8 skipped); integration suite pending | Express 4.22.3 and body-parser 1.20.9 accept `~6.16.0`. npm regenerated the lockfile and installed 6.16.1. `npm audit` reports 32 vulnerabilities (4 low, 28 moderate): qs is clear; minimatch and deepmerge remain tracked, and a glob advisory is newly tracked below. Full integration tests were not run because they execute SQL writes against `shadowcheck_test`; per the DB write protocol, preview exact SQL, impact, rollback, and receive explicit confirmation first. |
+
+Minimatch #184 and deepmerge #177 remain unresolved and are tracked in `docs/ai/BACKLOG.md`; no override or suppression was added.
+
+---
+
 ## Deferred TODO — 2026-09-10
 
 **ESLint has no configuration covering `tests/`.**

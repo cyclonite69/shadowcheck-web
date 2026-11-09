@@ -1,4 +1,4 @@
-# 1.0.0 (2026-11-08)
+# 1.0.0 (2026-11-09)
 
 ### Bug Fixes
 
@@ -260,6 +260,7 @@
 - **deps:** pin typescript to 6.0.3 (typescript-eslint and ts-jest peers exclude 7) ([5ea6e08](https://github.com/cyclonite69/shadowcheck-web/commit/5ea6e08240eb125e4580036f4ad96a28bee38554))
 - **deps:** remediate Dependabot vulnerabilities and update sharp ([f7eaf84](https://github.com/cyclonite69/shadowcheck-web/commit/f7eaf84387db4ea2b07199c5f69a46ac63f33c62)), closes [#136](https://github.com/cyclonite69/shadowcheck-web/issues/136) [#135](https://github.com/cyclonite69/shadowcheck-web/issues/135) [#134](https://github.com/cyclonite69/shadowcheck-web/issues/134) [#130](https://github.com/cyclonite69/shadowcheck-web/issues/130) [#118](https://github.com/cyclonite69/shadowcheck-web/issues/118) [#102](https://github.com/cyclonite69/shadowcheck-web/issues/102) [#101](https://github.com/cyclonite69/shadowcheck-web/issues/101) [#97](https://github.com/cyclonite69/shadowcheck-web/issues/97) [#107](https://github.com/cyclonite69/shadowcheck-web/issues/107) [#123](https://github.com/cyclonite69/shadowcheck-web/issues/123) [#129](https://github.com/cyclonite69/shadowcheck-web/issues/129) [#125](https://github.com/cyclonite69/shadowcheck-web/issues/125) [#132](https://github.com/cyclonite69/shadowcheck-web/issues/132) [#127](https://github.com/cyclonite69/shadowcheck-web/issues/127) [#133](https://github.com/cyclonite69/shadowcheck-web/issues/133) [#126](https://github.com/cyclonite69/shadowcheck-web/issues/126)
 - **deps:** restore @playwright/test (lost during react-dom merge conflict resolution) ([aa983f6](https://github.com/cyclonite69/shadowcheck-web/commit/aa983f68dbd30f337017d9b65de17ba50cfef857))
+- **deps:** upgrade qs to 6.16.1 and document minimatch/deepmerge blockers ([7ef62e4](https://github.com/cyclonite69/shadowcheck-web/commit/7ef62e46038dc8397073dbc68e65959686cb43f7))
 - **dev:** add docker-cli, aws-cli, postgresql-client, curl to Dockerfile builder stage ([23b0399](https://github.com/cyclonite69/shadowcheck-web/commit/23b03991276bafe870e0870fa1a5380b7c549a01))
 - **dev:** set REDIS_HOST=redis in dev compose to fix api_dev DNS resolution ([cc631ab](https://github.com/cyclonite69/shadowcheck-web/commit/cc631abe0b824c4becff04c34a4df10c337d69b1))
 - disable weather routes to unblock server startup ([c853217](https://github.com/cyclonite69/shadowcheck-web/commit/c85321793ed0af677410ac260dbdf9cd1fa00d89))
